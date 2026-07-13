@@ -39,23 +39,29 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
   const { state, completeMicroAdventure } = useLifeQuest();
   const [mood, setMood] = useState<Mood>("bored");
   const [time, setTime] = useState<AvailableTime>("15");
+  const [recommendationIndex, setRecommendationIndex] = useState(0);
   const [isMomentFormOpen, setIsMomentFormOpen] = useState(false);
   const [savedAdventureId, setSavedAdventureId] = useState<string | null>(null);
   const profile = state.profile;
 
-  const recommendation = useMemo(
-    () =>
-      microAdventures.reduce((best, adventure) => {
-        const score =
-          (adventure.moods.includes(mood) ? 2 : 0) +
-          (adventure.times.includes(time) ? 1 : 0);
-        const bestScore =
-          (best.moods.includes(mood) ? 2 : 0) + (best.times.includes(time) ? 1 : 0);
+  const recommendationCandidates = useMemo(() => {
+    const exactMatches = microAdventures.filter(
+      (adventure) => adventure.moods.includes(mood) && adventure.times.includes(time)
+    );
 
-        return score > bestScore ? adventure : best;
-      }, microAdventures[0]),
-    [mood, time]
-  );
+    if (exactMatches.length > 1) return exactMatches;
+
+    const partialMatches = microAdventures.filter(
+      (adventure) =>
+        !exactMatches.some((match) => match.id === adventure.id) &&
+        (adventure.moods.includes(mood) || adventure.times.includes(time))
+    );
+
+    return [...exactMatches, ...partialMatches];
+  }, [mood, time]);
+  const recommendation =
+    recommendationCandidates[recommendationIndex % recommendationCandidates.length] ??
+    microAdventures[0];
 
   if (!profile) return null;
 
@@ -63,7 +69,24 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
     .slice()
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
     .slice(0, 3);
-  const completedToday = state.quests.filter((quest) => isToday(quest.completedAt)).length;
+  const momentsToday = state.lifeMoments.filter((moment) => isToday(moment.completedAt)).length;
+
+  function updateMood(nextMood: Mood) {
+    setMood(nextMood);
+    setRecommendationIndex(0);
+  }
+
+  function updateTime(nextTime: AvailableTime) {
+    setTime(nextTime);
+    setRecommendationIndex(0);
+  }
+
+  function showAnotherAdventure() {
+    if (recommendationCandidates.length < 2) return;
+
+    setRecommendationIndex((index) => (index + 1) % recommendationCandidates.length);
+    setIsMomentFormOpen(false);
+  }
 
   function saveAdventure(note: string, mood: keyof typeof lifeMomentMoodLabels) {
     if (!recommendation || savedAdventureId === recommendation.id) return;
@@ -86,7 +109,7 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
         <h2 id="check-in-heading" className="text-lg font-bold text-zinc-50">現在的你，感覺怎麼樣？</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {moods.map((option) => (
-            <button key={option.value} type="button" onClick={() => setMood(option.value)} className={`rounded-full border px-3 py-2 text-sm font-medium transition active:scale-[0.98] ${mood === option.value ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-emerald-200/50 hover:bg-emerald-300/10"}`}>
+            <button key={option.value} type="button" onClick={() => updateMood(option.value)} className={`rounded-full border px-3 py-2 text-sm font-medium transition active:scale-[0.98] ${mood === option.value ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-emerald-200/50 hover:bg-emerald-300/10"}`}>
               {option.label}
             </button>
           ))}
@@ -94,7 +117,7 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
         <div className="mt-5 flex items-center gap-2 text-sm font-bold text-zinc-50"><Clock className="size-5 text-emerald-200" weight="duotone" />你現在有多少時間？</div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {times.map((option) => (
-            <button key={option.value} type="button" onClick={() => setTime(option.value)} className={`rounded-xl border px-3 py-3 text-sm font-medium transition active:scale-[0.98] ${time === option.value ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-zinc-950/40 text-zinc-200 hover:border-emerald-200/50 hover:bg-emerald-300/10"}`}>
+            <button key={option.value} type="button" onClick={() => updateTime(option.value)} className={`rounded-xl border px-3 py-3 text-sm font-medium transition active:scale-[0.98] ${time === option.value ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-zinc-950/40 text-zinc-200 hover:border-emerald-200/50 hover:bg-emerald-300/10"}`}>
               {option.label}
             </button>
           ))}
@@ -109,6 +132,9 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => setIsMomentFormOpen(true)} disabled={savedAdventureId === recommendation.id} className="rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-200 active:scale-[0.98] disabled:cursor-default disabled:bg-emerald-100">
             {savedAdventureId === recommendation.id ? "你為今天留下了一個不一樣的片段" : "我完成了"}
+          </button>
+          <button type="button" onClick={showAnotherAdventure} disabled={recommendationCandidates.length < 2} className="rounded-xl border border-emerald-200/50 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:border-emerald-200 hover:bg-emerald-300/10 active:scale-[0.98] disabled:cursor-default disabled:opacity-50">
+            換一個小冒險
           </button>
           <span className="text-xs text-zinc-300">{time === "60" ? "慢慢來也很好" : `${time} 分鐘左右就可以`}</span>
         </div>
@@ -129,7 +155,7 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
 
       <details className="group rounded-xl border border-white/10 bg-zinc-900/50 p-4">
         <summary className="cursor-pointer list-none text-sm font-bold text-zinc-300">想看看你的探索紀錄嗎？</summary>
-        <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-sm text-zinc-300">今天留下了 {completedToday} 個片段</p><p className="mt-1 text-xs text-zinc-500">等級、EXP 和技能會繼續陪你記錄每一次嘗試。</p><ExpBar exp={profile.exp} /></div><div className="flex items-center gap-3 text-sm text-emerald-100"><Lightning className="size-5" weight="fill" />{profile.exp} EXP <button type="button" onClick={() => onNavigate("skills")} className="rounded-lg border border-emerald-300/25 px-3 py-2 text-xs font-bold hover:bg-emerald-300/10">技能：{categoryLabels[profile.focus]}</button></div></div>
+        <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-sm text-zinc-300">今天留下了 {momentsToday} 個片段</p><p className="mt-1 text-xs text-zinc-500">等級、EXP 和技能會繼續陪你記錄每一次嘗試。</p><ExpBar exp={profile.exp} /></div><div className="flex items-center gap-3 text-sm text-emerald-100"><Lightning className="size-5" weight="fill" />{profile.exp} EXP <button type="button" onClick={() => onNavigate("skills")} className="rounded-lg border border-emerald-300/25 px-3 py-2 text-xs font-bold hover:bg-emerald-300/10">技能：{categoryLabels[profile.focus]}</button></div></div>
       </details>
       {isMomentFormOpen ? <LifeMomentForm adventureName={recommendation.title} onSave={saveAdventure} onClose={() => setIsMomentFormOpen(false)} /> : null}
     </div>
