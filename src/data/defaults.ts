@@ -2,6 +2,7 @@ import type {
   Achievement,
   LifeQuestState,
   MapLocation,
+  LifeMoment,
   OccupationSuggestion,
   Quest,
   Stats
@@ -209,7 +210,8 @@ export function createInitialLifeQuestState(): LifeQuestState {
     stats: { ...defaultStats },
     achievements: createDefaultAchievements(),
     mapCompletions: [],
-    occupationSuggestions: []
+    occupationSuggestions: [],
+    lifeMoments: []
   };
 }
 
@@ -226,6 +228,17 @@ export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
     value.occupationSuggestions
   )
     ? value.occupationSuggestions
+    : [];
+  const lifeMoments: LifeMoment[] = Array.isArray(value.lifeMoments)
+    ? value.lifeMoments.filter(
+        (moment): moment is LifeMoment =>
+          Boolean(moment) &&
+          typeof moment.id === "string" &&
+          typeof moment.adventureName === "string" &&
+          typeof moment.note === "string" &&
+          typeof moment.mood === "string" &&
+          typeof moment.completedAt === "string"
+      )
     : [];
 
   return {
@@ -269,6 +282,7 @@ export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
     },
     achievements,
     mapCompletions,
-    occupationSuggestions
+    occupationSuggestions,
+    lifeMoments
   };
 }

@@ -27,6 +27,7 @@ import {
 import { createId } from "@/lib/utils";
 import type {
   GrowthFocus,
+  LifeMomentMood,
   LifeStage,
   LifeQuestState,
   MapLocation,
@@ -57,6 +58,11 @@ interface LifeQuestContextValue {
   updateQuest: (questId: string, draft: QuestDraft) => void;
   deleteQuest: (questId: string) => void;
   completeQuest: (questId: string) => void;
+  completeMicroAdventure: (
+    draft: QuestDraft,
+    note: string,
+    mood: LifeMomentMood
+  ) => void;
   completeMapLocation: (location: MapLocation) => void;
   resetAppData: () => void;
   restoreDemoData: () => void;
@@ -262,6 +268,47 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
     [setState]
   );
 
+  const completeMicroAdventure = useCallback(
+    (draft: QuestDraft, note: string, mood: LifeMomentMood) => {
+      setState((current) => {
+        const now = new Date().toISOString();
+        const quest: Quest = {
+          id: createId("micro-adventure"),
+          ...draft,
+          expReward: getExpReward(draft.difficulty),
+          status: "completed",
+          createdAt: now,
+          completedAt: now
+        };
+        const withExp = awardExp(current, quest.expReward);
+        const quests = [quest, ...current.quests];
+        const stats = addStat(withExp.stats, quest.category);
+        const achievements = evaluateAchievements(withExp.achievements, {
+          quests,
+          mapCompletions: withExp.mapCompletions
+        });
+
+        return {
+          ...withExp,
+          quests,
+          stats,
+          achievements,
+          lifeMoments: [
+            {
+              id: createId("life-moment"),
+              adventureName: draft.title,
+              note: note.trim(),
+              mood,
+              completedAt: now
+            },
+            ...withExp.lifeMoments
+          ]
+        };
+      });
+    },
+    [setState]
+  );
+
   const completeMapLocation = useCallback(
     (location: MapLocation) => {
       setState((current) => {
@@ -369,6 +416,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
       updateQuest,
       deleteQuest,
       completeQuest,
+      completeMicroAdventure,
       completeMapLocation,
       resetAppData,
       restoreDemoData,
@@ -379,6 +427,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
       addQuest,
       addOccupationQuestPack,
       completeMapLocation,
+      completeMicroAdventure,
       completeQuest,
       deleteQuest,
       exportData,

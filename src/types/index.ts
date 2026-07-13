@@ -100,6 +100,21 @@ export interface OccupationSuggestion {
   createdAt: string;
 }
 
+export type LifeMomentMood =
+  | "happier"
+  | "relaxed"
+  | "refreshed"
+  | "unchanged"
+  | "trySomethingElse";
+
+export interface LifeMoment {
+  id: string;
+  adventureName: string;
+  note: string;
+  mood: LifeMomentMood;
+  completedAt: string;
+}
+
 export interface MapLocation {
   id: string;
   name: string;
@@ -118,4 +133,5 @@ export interface LifeQuestState {
   achievements: Achievement[];
   mapCompletions: string[];
   occupationSuggestions: OccupationSuggestion[];
+  lifeMoments: LifeMoment[];
 }
