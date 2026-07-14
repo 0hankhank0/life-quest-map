@@ -1,66 +1,29 @@
 # Life Quest Map
 
-把現實生活變成 RPG 成長地圖，透過任務、技能、等級、地點和生活片段看見自己的成長。
+以 RPG 任務感協助你記錄生活的小型 Web App。選擇現在的心情與可用時間，首頁會依成長重點與職業偏好推薦一個可立即開始的微冒險。
 
-## 主要功能
+## 本次內容
 
-- 情緒與可用時間 Check-in
-- 個人化微冒險推薦
-- 任務系統
-- EXP、等級和技能成長
-- 地圖探索
-- 生活片段紀錄
-- 每週回顧
-- LocalStorage 本機資料保存
-- JSON 匯入與匯出
+- 60 個微冒險，涵蓋學習、體能、創意、社交、探索與自律。
+- 每個冒險都有唯一 ID、心情、時間、分類與職業標記；推薦採心情＋時間＋個人偏好的固定排序，無符合項時仍有完整 fallback。
+- 48 則反思引言：18 則原創、18 則公共領域文本（含文學）、12 則標示清楚的原創轉述。
+- 引言來源、授權判斷與維護規則見 [docs/QUOTE_SOURCES.md](docs/QUOTE_SOURCES.md)。
+- 所有個人進度仍只保存在瀏覽器 LocalStorage；本專案不呼叫 Quote、影視、音樂或任何需 API key 的服務。
 
-## 技術棧
+## 技術
 
-- Next.js ^15.5.6
-- React ^19.1.0
-- TypeScript ^5.9.3
-- Tailwind CSS ^4.1.14
-- Leaflet ^1.9.4
-- React Leaflet ^5.0.0
-- Phosphor Icons ^2.1.10
+Next.js 15、React 19、TypeScript、Tailwind CSS 4、Leaflet、Phosphor Icons。
 
-## 本機執行方式
-
-```bash
-npm install
-npm run dev
-```
-
-若 Windows PowerShell 阻擋 `npm.ps1`，可改用：
+## 開發
 
 ```bash
 npm.cmd install
 npm.cmd run dev
 ```
 
-## 品質檢查
-
-```bash
-npm run lint
-npm run build
-```
-
-Windows 也可使用：
+## 驗證
 
 ```bash
 npm.cmd run lint
 npm.cmd run build
 ```
-
-## 資料保存
-
-目前資料保存在瀏覽器的 LocalStorage，尚未提供帳號系統或雲端同步功能。
-
-## 專案狀態與未來規劃
-
-- 更多微冒險內容
-- 更完整的個人化推薦
-- 雲端同步
-- PWA 支援
-- 更豐富的地圖探索
-- 成就與長期成長分析
