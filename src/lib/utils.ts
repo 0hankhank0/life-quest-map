@@ -3,7 +3,11 @@ export function createId(prefix: string): string {
 }
 
 export function todayKey(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 export function isToday(value: string | null): boolean {
@@ -11,7 +15,7 @@ export function isToday(value: string | null): boolean {
     return false;
   }
 
-  return value.slice(0, 10) === todayKey();
+  return todayKey(new Date(value)) === todayKey();
 }
 
 export function clamp(value: number, min: number, max: number): number {

@@ -113,6 +113,10 @@ export interface LifeMoment {
   note: string;
   mood: LifeMomentMood;
   completedAt: string;
+  /** Stable micro-adventure identifier; absent on records saved before v0.1. */
+  adventureId?: string;
+  /** Whether this record was the daily completion that awarded EXP and a stat point. */
+  rewardGranted?: boolean;
 }
 
 export interface MapLocation {

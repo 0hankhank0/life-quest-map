@@ -24,7 +24,7 @@ import {
   getExpReward,
   getLevelFromExp
 } from "@/lib/progression";
-import { createId } from "@/lib/utils";
+import { createId, todayKey } from "@/lib/utils";
 import type {
   GrowthFocus,
   LifeMomentMood,
@@ -59,6 +59,7 @@ interface LifeQuestContextValue {
   deleteQuest: (questId: string) => void;
   completeQuest: (questId: string) => void;
   completeMicroAdventure: (
+    adventureId: string,
     draft: QuestDraft,
     note: string,
     mood: LifeMomentMood
@@ -269,9 +270,20 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   );
 
   const completeMicroAdventure = useCallback(
-    (draft: QuestDraft, note: string, mood: LifeMomentMood) => {
+    (adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => {
       setState((current) => {
         const now = new Date().toISOString();
+          const alreadyRewardedToday = current.lifeMoments.some(
+            (moment) =>
+              (moment.adventureId === adventureId ||
+                (!moment.adventureId && moment.adventureName === draft.title)) &&
+              (moment.rewardGranted ?? true) &&
+            todayKey(new Date(moment.completedAt)) === todayKey(new Date(now))
+        );
+
+        if (alreadyRewardedToday) {
+          return current;
+        }
         const quest: Quest = {
           id: createId("micro-adventure"),
           ...draft,
@@ -299,7 +311,9 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
               adventureName: draft.title,
               note: note.trim(),
               mood,
-              completedAt: now
+              completedAt: now,
+              adventureId,
+              rewardGranted: true
             },
             ...withExp.lifeMoments
           ]

@@ -238,7 +238,11 @@ export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
           typeof moment.note === "string" &&
           typeof moment.mood === "string" &&
           typeof moment.completedAt === "string"
-      )
+      ).map((moment) => ({
+        ...moment,
+        adventureId: typeof moment.adventureId === "string" ? moment.adventureId : undefined,
+        rewardGranted: typeof moment.rewardGranted === "boolean" ? moment.rewardGranted : undefined
+      }))
     : [];
 
   return {
