@@ -2,7 +2,7 @@ import { evaluateAchievements } from "@/lib/achievements";
 import { recordDailyQuestCompletion, updateStreakForCompletion } from "@/lib/dailyProgress";
 import { appendRecommendationHistory } from "@/lib/adventurePreferences";
 import { STAT_GAIN_PER_QUEST, addStat, getExpReward, getLevelFromExp } from "@/lib/progression";
-import { createId } from "@/lib/utils";
+import { createId, todayKey } from "@/lib/utils";
 import type { LifeMomentMood, LifeQuestState, MapLocation, Quest, QuestDraft } from "@/types";
 
 function awardExperience(state: LifeQuestState, amount: number): LifeQuestState {
@@ -22,7 +22,7 @@ function applyCompletion(state: LifeQuestState, quest: Quest, now: string, mapCo
       : addStat(withExp.stats, quest.category),
     achievements: evaluateAchievements(withExp.achievements, { quests, mapCompletions }),
     mapCompletions,
-    dailyProgress: recordDailyQuestCompletion(withExp.dailyProgress, quest.id, now),
+    dailyProgress: recordDailyQuestCompletion(withExp.dailyProgress, quest.id, quest.expReward, now),
     streak: updateStreakForCompletion(withExp.streak, now)
   };
 }
@@ -60,7 +60,7 @@ export function completeQuest(state: LifeQuestState, questId: string, now = new 
 export function completeMicroAdventure(state: LifeQuestState, adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood, now = new Date().toISOString()): LifeQuestState {
   const alreadyRewardedToday = state.lifeMoments.some((moment) =>
     (moment.adventureId === adventureId || (!moment.adventureId && moment.adventureName === draft.title)) &&
-    (moment.rewardGranted ?? true) && new Date(moment.completedAt).toDateString() === new Date(now).toDateString());
+    (moment.rewardGranted ?? true) && todayKey(new Date(moment.completedAt)) === todayKey(new Date(now)));
   if (alreadyRewardedToday) return state;
   const quest = { ...createQuest(draft, now, createId("micro-adventure")), status: "completed" as const, completedAt: now };
   const completed = applyCompletion(state, quest, now);

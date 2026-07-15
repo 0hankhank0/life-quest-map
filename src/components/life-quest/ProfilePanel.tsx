@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
+import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { categoryLabels, occupationLabels, roleOptions, studentStageLabels } from "@/data/labels";
 import { getStrongestStat } from "@/lib/progression";
@@ -19,9 +20,14 @@ export function ProfilePanel() {
   const profile = state.profile;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [dataMessage, setDataMessage] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   if (!profile) {
     return null;
+  }
+
+  if (historyOpen) {
+    return <HistoryPanel state={state} onBack={() => setHistoryOpen(false)} />;
   }
 
   const completedQuests = state.quests.filter((quest) => quest.status === "completed");
@@ -85,6 +91,16 @@ export function ProfilePanel() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-zinc-50">冒險歷史</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-400">查看近 30 天進度、成長類別與生命片段時間軸。</p>
+        </div>
+        <button type="button" onClick={() => setHistoryOpen(true)} className="shrink-0 rounded-lg border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10 active:translate-y-px">
+          開啟歷史
+        </button>
       </section>
 
       {state.occupationSuggestions.length > 0 ? (

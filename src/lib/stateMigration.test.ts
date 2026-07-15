@@ -9,11 +9,18 @@ describe("v2 state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(2);
-    expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id] });
+    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
     expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: false, notificationsEnabled: false });
+  });
+
+  it("derives daily EXP when a v2 daily summary has no expEarned field", () => {
+    const old = createInitialLifeQuestState();
+    const completedQuest = { ...old.quests[0], status: "completed" as const, completedAt: "2026-07-15T08:00:00.000Z" };
+    const migrated = migrateLifeQuestState({ ...old, schemaVersion: 2, quests: [completedQuest], dailyProgress: { date: "2026-07-15", completedQuestIds: [completedQuest.id] } }, now);
+    expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [completedQuest.id], expEarned: completedQuest.expReward });
   });
 
   it("normalizes invalid fields independently without dropping valid quests", () => {

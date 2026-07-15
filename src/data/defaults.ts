@@ -211,7 +211,7 @@ export const mapLocations: MapLocation[] = [
 
 export function createInitialLifeQuestState(): LifeQuestState {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     profile: null,
     quests: createDemoQuests(),
     stats: { ...defaultStats },
@@ -226,7 +226,8 @@ export function createInitialLifeQuestState(): LifeQuestState {
     selectedAdventureId: null,
     dailyProgress: {
       date: todayKey(),
-      completedQuestIds: []
+      completedQuestIds: [],
+      expEarned: 0
     },
     streak: {
       current: 0,

@@ -6,16 +6,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function recordDailyQuestCompletion(
   dailyProgress: DailyProgress,
   questId: string,
+  expReward: number,
   completedAt: string
 ): DailyProgress {
   const date = todayKey(new Date(completedAt));
   const completedQuestIds = dailyProgress.date === date ? dailyProgress.completedQuestIds : [];
 
+  const alreadyCompleted = completedQuestIds.includes(questId);
   return {
     date,
-    completedQuestIds: completedQuestIds.includes(questId)
+    completedQuestIds: alreadyCompleted
       ? completedQuestIds
-      : [...completedQuestIds, questId]
+      : [...completedQuestIds, questId],
+    expEarned: dailyProgress.date === date
+      ? dailyProgress.expEarned + (alreadyCompleted ? 0 : expReward)
+      : expReward
   };
 }
 

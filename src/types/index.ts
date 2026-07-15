@@ -134,6 +134,7 @@ export interface DailyProgress {
   /** Local calendar date in YYYY-MM-DD format. */
   date: string;
   completedQuestIds: string[];
+  expEarned: number;
 }
 
 export interface Streak {
@@ -149,7 +150,7 @@ export interface UserSettings {
 }
 
 export interface LifeQuestState {
-  schemaVersion: 2;
+  schemaVersion: 3;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;

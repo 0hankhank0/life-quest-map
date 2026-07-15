@@ -60,7 +60,12 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
   ].filter((date): date is string => date !== null);
   const sourceDaily = isRecord(source.dailyProgress) ? source.dailyProgress : null;
   const storedDailyIds = sourceDaily && sourceDaily.date === nowKey ? uniqueIds(sourceDaily.completedQuestIds) : null;
-  const derivedTodayIds = quests.filter((quest) => quest.status === "completed" && completionDate(quest.completedAt) === nowKey).map((quest) => quest.id);
+  const todayCompletedQuests = quests.filter((quest) => quest.status === "completed" && completionDate(quest.completedAt) === nowKey);
+  const derivedTodayIds = todayCompletedQuests.map((quest) => quest.id);
+  const derivedTodayExp = todayCompletedQuests.reduce((total, quest) => total + quest.expReward, 0);
+  const storedDailyExp = sourceDaily && sourceDaily.date === nowKey && typeof sourceDaily.expEarned === "number" && sourceDaily.expEarned >= 0
+    ? sourceDaily.expEarned
+    : derivedTodayExp;
   const sourceStreak = isRecord(source.streak) && typeof source.streak.current === "number" && typeof source.streak.longest === "number" && (typeof source.streak.lastCompletedDate === "string" || source.streak.lastCompletedDate === null)
     ? { current: Math.max(0, source.streak.current), longest: Math.max(0, source.streak.longest), lastCompletedDate: typeof source.streak.lastCompletedDate === "string" ? source.streak.lastCompletedDate : null }
     : buildStreakFromCompletionDates(completionDates);
@@ -70,7 +75,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 2,
+    schemaVersion: 3,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },
@@ -83,7 +88,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     dismissedAdventures: Array.isArray(source.dismissedAdventures) ? source.dismissedAdventures.filter((item) => isRecord(item) && typeof item.adventureId === "string" && typeof item.dismissedAt === "string" && typeof item.count === "number").map((item) => ({ adventureId: item.adventureId as string, dismissedAt: item.dismissedAt as string, count: Math.max(1, item.count as number) })) : [],
     recommendationHistory: Array.isArray(source.recommendationHistory) ? source.recommendationHistory.filter((item) => isRecord(item) && typeof item.adventureId === "string" && typeof item.shownAt === "string" && typeof item.action === "string" && recommendationActions.has(item.action)).slice(-100) as LifeQuestState["recommendationHistory"] : [],
     selectedAdventureId: typeof source.selectedAdventureId === "string" ? source.selectedAdventureId : null,
-    dailyProgress: { date: nowKey, completedQuestIds: storedDailyIds ?? derivedTodayIds },
+    dailyProgress: { date: nowKey, completedQuestIds: storedDailyIds ?? derivedTodayIds, expEarned: storedDailyExp },
     streak: sourceStreak,
     customMapLocations: normalizeCustomMapLocations(source.customMapLocations),
     unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds),
