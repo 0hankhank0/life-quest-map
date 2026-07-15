@@ -10,6 +10,7 @@ export interface AdventureRecommendationContext {
   savedAdventureIds: string[];
   dismissedAdventures: DismissedAdventure[];
   recentlyShownIds: string[];
+  recentlyShownCategories?: GrowthFocus[];
   completedTodayIds: string[];
 }
 
@@ -27,6 +28,10 @@ export function getAdventureRecommendations(
   const favorites = new Set(context.favoriteAdventureIds);
   const saved = new Set(context.savedAdventureIds);
   const dismissed = new Map(context.dismissedAdventures.map((item) => [item.adventureId, item]));
+  const recentCategoryCounts = (context.recentlyShownCategories ?? []).reduce<Partial<Record<GrowthFocus, number>>>(
+    (counts, category) => ({ ...counts, [category]: (counts[category] ?? 0) + 1 }),
+    {}
+  );
 
   return adventures.map((adventure) => {
     let score = 0;
@@ -43,6 +48,7 @@ export function getAdventureRecommendations(
     if (favorites.has(adventure.id)) { score += 6; reasons.push("你之前收藏過這個提案"); }
     if (saved.has(adventure.id)) { score += 4; reasons.push("已留在你的稍後清單"); }
     if (recent.has(adventure.id)) score -= 24;
+    score -= (recentCategoryCounts[adventure.category] ?? 0) * 7;
     if (completed.has(adventure.id)) score -= 1000;
     const dismissal = dismissed.get(adventure.id);
     if (dismissal) {

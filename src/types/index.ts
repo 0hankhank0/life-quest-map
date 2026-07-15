@@ -130,7 +130,26 @@ export interface MapLocation {
   expReward: number;
 }
 
+export interface DailyProgress {
+  /** Local calendar date in YYYY-MM-DD format. */
+  date: string;
+  completedQuestIds: string[];
+}
+
+export interface Streak {
+  current: number;
+  longest: number;
+  lastCompletedDate: string | null;
+}
+
+export interface UserSettings {
+  theme: "system" | "dark";
+  reducedMotion: boolean;
+  notificationsEnabled: boolean;
+}
+
 export interface LifeQuestState {
+  schemaVersion: 2;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
@@ -143,6 +162,11 @@ export interface LifeQuestState {
   dismissedAdventures: DismissedAdventure[];
   recommendationHistory: RecommendationHistoryEntry[];
   selectedAdventureId: string | null;
+  dailyProgress: DailyProgress;
+  streak: Streak;
+  customMapLocations: MapLocation[];
+  unlockedSkillNodeIds: string[];
+  userSettings: UserSettings;
 }
 
 export interface DismissedAdventure {

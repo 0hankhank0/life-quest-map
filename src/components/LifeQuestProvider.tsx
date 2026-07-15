@@ -1,42 +1,14 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  type ReactNode
-} from "react";
-import {
-  STORAGE_KEY,
-  createDefaultAchievements,
-  createDemoQuests,
-  createInitialLifeQuestState,
-  defaultStats,
-  normalizeLifeQuestState
-} from "@/data/defaults";
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import { STORAGE_KEY, createDefaultAchievements, createDemoQuests, createInitialLifeQuestState, defaultStats } from "@/data/defaults";
 import { getOccupationQuestPack } from "@/data/questPacks";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { evaluateAchievements } from "@/lib/achievements";
-import {
-  STAT_GAIN_PER_QUEST,
-  addStat,
-  getExpReward,
-  getLevelFromExp
-} from "@/lib/progression";
-import { createId, todayKey } from "@/lib/utils";
-import type {
-  GrowthFocus,
-  LifeMomentMood,
-  LifeStage,
-  LifeQuestState,
-  MapLocation,
-  OccupationCategory,
-  Quest,
-  QuestDraft,
-  Role,
-  StudentStage
-} from "@/types";
+import { appendRecommendationHistory, toggleUniqueId } from "@/lib/adventurePreferences";
+import { addQuest, addQuestPack, completeMapLocation as completeMapLocationOperation, completeMicroAdventure as completeMicroAdventureOperation, completeQuest as completeQuestOperation, deleteQuest as deleteQuestOperation, updateQuest as updateQuestOperation } from "@/lib/questOperations";
+import { importLifeQuestState, migrateLifeQuestState } from "@/lib/stateMigration";
+import { createId } from "@/lib/utils";
+import type { GrowthFocus, LifeMomentMood, LifeStage, LifeQuestState, MapLocation, OccupationCategory, QuestDraft, Role, StudentStage } from "@/types";
 
 interface OnboardingInput {
   name: string;
@@ -58,12 +30,7 @@ interface LifeQuestContextValue {
   updateQuest: (questId: string, draft: QuestDraft) => void;
   deleteQuest: (questId: string) => void;
   completeQuest: (questId: string) => void;
-  completeMicroAdventure: (
-    adventureId: string,
-    draft: QuestDraft,
-    note: string,
-    mood: LifeMomentMood
-  ) => void;
+  completeMicroAdventure: (adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => void;
   toggleFavoriteAdventure: (adventureId: string) => void;
   toggleSavedAdventure: (adventureId: string) => void;
   dismissAdventure: (adventureId: string) => void;
@@ -79,450 +46,55 @@ interface LifeQuestContextValue {
 
 const LifeQuestContext = createContext<LifeQuestContextValue | null>(null);
 
-function awardExp(state: LifeQuestState, amount: number): LifeQuestState {
-  if (!state.profile) {
-    return state;
-  }
-
-  const exp = state.profile.exp + amount;
-
-  return {
-    ...state,
-    profile: {
-      ...state.profile,
-      exp,
-      level: getLevelFromExp(exp)
-    }
-  };
-}
-
 export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const createInitial = useCallback(() => createInitialLifeQuestState(), []);
-  const normalizeState = useCallback((value: LifeQuestState) => normalizeLifeQuestState(value), []);
-  const [state, setState, isHydrated] = useLocalStorage(
-    STORAGE_KEY,
-    createInitial,
-    normalizeState
-  );
+  const [state, setState, isHydrated] = useLocalStorage(STORAGE_KEY, createInitial, migrateLifeQuestState);
 
-  const onboard = useCallback(
-    (input: OnboardingInput) => {
-      setState((current) => ({
-        ...current,
-        occupationSuggestions:
-          input.occupation === "custom" && input.customOccupationName?.trim()
-            ? [
-                ...current.occupationSuggestions,
-                {
-                  id: createId("occupation"),
-                  name: input.customOccupationName.trim(),
-                  note: input.occupationSuggestion?.trim() ?? "",
-                  createdAt: new Date().toISOString()
-                }
-              ]
-            : current.occupationSuggestions,
-        profile: {
-          id: createId("hero"),
-          name: input.name.trim(),
-          lifeStage: input.lifeStage,
-          studentStage: input.lifeStage === "student" ? input.studentStage : undefined,
-          role: input.role,
-          occupation: input.occupation,
-          customOccupationName:
-            input.occupation === "custom" ? input.customOccupationName?.trim() : undefined,
-          focus: input.focuses[0] ?? "learning",
-          focuses: input.focuses.length > 0 ? input.focuses : ["learning"],
-          exp: 0,
-          level: 1,
-          createdAt: new Date().toISOString()
-        }
-      }));
-    },
-    [setState]
-  );
-
-  const addQuest = useCallback(
-    (draft: QuestDraft) => {
-      setState((current) => {
-        const quest: Quest = {
-          id: createId("quest"),
-          ...draft,
-          expReward: getExpReward(draft.difficulty),
-          status: "pending",
-          createdAt: new Date().toISOString(),
-          completedAt: null
-        };
-
-        return {
-          ...current,
-          quests: [quest, ...current.quests]
-        };
-      });
-    },
-    [setState]
-  );
-
-  const addOccupationQuestPack = useCallback(
-    (occupation: OccupationCategory) => {
-      const pack = getOccupationQuestPack(occupation);
-      if (!pack) {
-        return 0;
-      }
-
-      const existingTitles = new Set(
-        state.quests.map((quest) => `${quest.occupation}:${quest.title}`)
-      );
-      const now = new Date().toISOString();
-      const questsToAdd = pack.quests
-        .filter((draft) => !existingTitles.has(`${draft.occupation}:${draft.title}`))
-        .map((draft) => ({
-          id: createId("pack"),
-          ...draft,
-          expReward: getExpReward(draft.difficulty),
-          status: "pending" as const,
-          createdAt: now,
-          completedAt: null
-        }));
-
-      if (questsToAdd.length === 0) {
-        return 0;
-      }
-
-      setState((current) => {
-        const latestExistingTitles = new Set(
-          current.quests.map((quest) => `${quest.occupation}:${quest.title}`)
-        );
-        const latestQuestsToAdd = questsToAdd.filter(
-          (quest) => !latestExistingTitles.has(`${quest.occupation}:${quest.title}`)
-        );
-
-        if (latestQuestsToAdd.length === 0) {
-          return current;
-        }
-
-        return {
-          ...current,
-          quests: [...latestQuestsToAdd, ...current.quests]
-        };
-      });
-
-      return questsToAdd.length;
-    },
-    [setState, state.quests]
-  );
-
-  const updateQuest = useCallback(
-    (questId: string, draft: QuestDraft) => {
-      setState((current) => ({
-        ...current,
-        quests: current.quests.map((quest) =>
-          quest.id === questId
-            ? {
-                ...quest,
-                ...draft,
-                expReward: getExpReward(draft.difficulty)
-              }
-            : quest
-        )
-      }));
-    },
-    [setState]
-  );
-
-  const deleteQuest = useCallback(
-    (questId: string) => {
-      setState((current) => ({
-        ...current,
-        quests: current.quests.filter((quest) => quest.id !== questId)
-      }));
-    },
-    [setState]
-  );
-
-  const completeQuest = useCallback(
-    (questId: string) => {
-      setState((current) => {
-        const target = current.quests.find((quest) => quest.id === questId);
-        if (!target || target.status === "completed") {
-          return current;
-        }
-
-        const now = new Date().toISOString();
-        const quests = current.quests.map((quest) =>
-          quest.id === questId
-            ? {
-                ...quest,
-                status: "completed" as const,
-                completedAt: now
-              }
-            : quest
-        );
-        const withExp = awardExp(current, target.expReward);
-        const stats = addStat(withExp.stats, target.category);
-        const achievements = evaluateAchievements(withExp.achievements, {
-          quests,
-          mapCompletions: withExp.mapCompletions
-        });
-
-        return {
-          ...withExp,
-          quests,
-          stats,
-          achievements
-        };
-      });
-    },
-    [setState]
-  );
-
-  const completeMicroAdventure = useCallback(
-    (adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => {
-      setState((current) => {
-        const now = new Date().toISOString();
-          const alreadyRewardedToday = current.lifeMoments.some(
-            (moment) =>
-              (moment.adventureId === adventureId ||
-                (!moment.adventureId && moment.adventureName === draft.title)) &&
-              (moment.rewardGranted ?? true) &&
-            todayKey(new Date(moment.completedAt)) === todayKey(new Date(now))
-        );
-
-        if (alreadyRewardedToday) {
-          return current;
-        }
-        const quest: Quest = {
-          id: createId("micro-adventure"),
-          ...draft,
-          expReward: getExpReward(draft.difficulty),
-          status: "completed",
-          createdAt: now,
-          completedAt: now
-        };
-        const withExp = awardExp(current, quest.expReward);
-        const quests = [quest, ...current.quests];
-        const stats = addStat(withExp.stats, quest.category);
-        const achievements = evaluateAchievements(withExp.achievements, {
-          quests,
-          mapCompletions: withExp.mapCompletions
-        });
-
-        return {
-          ...withExp,
-          quests,
-          stats,
-          achievements,
-          lifeMoments: [
-            {
-              id: createId("life-moment"),
-              adventureName: draft.title,
-              note: note.trim(),
-              mood,
-              completedAt: now,
-              adventureId,
-              rewardGranted: true
-            },
-            ...withExp.lifeMoments
-          ],
-          savedAdventureIds: current.savedAdventureIds.filter((id) => id !== adventureId),
-          recommendationHistory: [
-            ...current.recommendationHistory,
-            { adventureId, shownAt: now, action: "completed" as const }
-          ].slice(-100)
-        };
-      });
-    },
-    [setState]
-  );
-
-  const updateAdventureIds = useCallback((field: "favoriteAdventureIds" | "savedAdventureIds", adventureId: string, action: "favorite" | "saved") => {
-    setState((current) => {
-      const hasAdventure = current[field].includes(adventureId);
-      const now = new Date().toISOString();
-      return {
-        ...current,
-        [field]: hasAdventure ? current[field].filter((id) => id !== adventureId) : [...current[field], adventureId],
-        recommendationHistory: [
-          ...current.recommendationHistory,
-          { adventureId, shownAt: now, action }
-        ].slice(-100)
-      };
-    });
-  }, [setState]);
-
-  const toggleFavoriteAdventure = useCallback((adventureId: string) => updateAdventureIds("favoriteAdventureIds", adventureId, "favorite"), [updateAdventureIds]);
-  const toggleSavedAdventure = useCallback((adventureId: string) => updateAdventureIds("savedAdventureIds", adventureId, "saved"), [updateAdventureIds]);
-  const dismissAdventure = useCallback((adventureId: string) => {
-    setState((current) => {
-      const now = new Date().toISOString();
-      const found = current.dismissedAdventures.find((item) => item.adventureId === adventureId);
-      return {
-        ...current,
-        dismissedAdventures: found
-          ? current.dismissedAdventures.map((item) => item.adventureId === adventureId ? { ...item, dismissedAt: now, count: item.count + 1 } : item)
-          : [...current.dismissedAdventures, { adventureId, dismissedAt: now, count: 1 }],
-        recommendationHistory: [...current.recommendationHistory, { adventureId, shownAt: now, action: "dismissed" as const }].slice(-100)
-      };
-    });
-  }, [setState]);
-  const showAdventure = useCallback((adventureId: string) => {
-    setState((current) => ({ ...current, recommendationHistory: [...current.recommendationHistory, { adventureId, shownAt: new Date().toISOString(), action: "shown" as const }].slice(-100) }));
-  }, [setState]);
-  const selectAdventure = useCallback((adventureId: string) => setState((current) => ({ ...current, selectedAdventureId: adventureId })), [setState]);
-  const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
-
-  const completeMapLocation = useCallback(
-    (location: MapLocation) => {
-      setState((current) => {
-        if (current.mapCompletions.includes(location.id)) {
-          return current;
-        }
-
-        const now = new Date().toISOString();
-        const quest: Quest = {
-          id: `map-${location.id}`,
-          title: location.questTitle,
-          description: `${location.name}的地圖任務已完成。`,
-          type: "map",
-          category: location.category,
-          occupation: "general",
-          difficulty: location.expReward >= 100 ? "hard" : location.expReward >= 50 ? "normal" : "easy",
-          expReward: location.expReward,
-          status: "completed",
-          createdAt: now,
-          completedAt: now
-        };
-        const quests = [quest, ...current.quests];
-        const mapCompletions = [...current.mapCompletions, location.id];
-        const withExp = awardExp(current, location.expReward);
-        const stats = {
-          ...withExp.stats,
-          exploration: withExp.stats.exploration + STAT_GAIN_PER_QUEST
-        };
-        const achievements = evaluateAchievements(withExp.achievements, {
-          quests,
-          mapCompletions
-        });
-
-        return {
-          ...withExp,
-          quests,
-          stats,
-          achievements,
-          mapCompletions
-        };
-      });
-    },
-    [setState]
-  );
-
-  const resetAppData = useCallback(() => {
-    setState(createInitialLifeQuestState());
-  }, [setState]);
-
-  const restoreDemoData = useCallback(() => {
+  const onboard = useCallback((input: OnboardingInput) => {
     setState((current) => ({
-      ...createInitialLifeQuestState(),
-      profile: current.profile
-        ? {
-            ...current.profile,
-            exp: 0,
-            level: 1
-          }
-        : null,
-      quests: createDemoQuests(),
-      stats: { ...defaultStats },
-      achievements: createDefaultAchievements(),
-      mapCompletions: [],
-      occupationSuggestions: current.occupationSuggestions
+      ...current,
+      occupationSuggestions: input.occupation === "custom" && input.customOccupationName?.trim() ? [...current.occupationSuggestions, { id: createId("occupation"), name: input.customOccupationName.trim(), note: input.occupationSuggestion?.trim() ?? "", createdAt: new Date().toISOString() }] : current.occupationSuggestions,
+      profile: { id: createId("hero"), name: input.name.trim(), lifeStage: input.lifeStage, studentStage: input.lifeStage === "student" ? input.studentStage : undefined, role: input.role, occupation: input.occupation, customOccupationName: input.occupation === "custom" ? input.customOccupationName?.trim() : undefined, focus: input.focuses[0] ?? "learning", focuses: input.focuses.length ? input.focuses : ["learning"], exp: 0, level: 1, createdAt: new Date().toISOString() }
     }));
   }, [setState]);
-
+  const addQuestCallback = useCallback((draft: QuestDraft) => setState((current) => addQuest(current, draft)), [setState]);
+  const addOccupationQuestPack = useCallback((occupation: OccupationCategory) => {
+    const pack = getOccupationQuestPack(occupation);
+    if (!pack) return 0;
+    const result = addQuestPack(state, pack.quests);
+    if (result.added) setState((current) => addQuestPack(current, pack.quests).state);
+    return result.added;
+  }, [setState, state]);
+  const updateQuest = useCallback((questId: string, draft: QuestDraft) => setState((current) => updateQuestOperation(current, questId, draft)), [setState]);
+  const deleteQuest = useCallback((questId: string) => setState((current) => deleteQuestOperation(current, questId)), [setState]);
+  const completeQuest = useCallback((questId: string) => setState((current) => completeQuestOperation(current, questId)), [setState]);
+  const completeMicroAdventure = useCallback((adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => setState((current) => completeMicroAdventureOperation(current, adventureId, draft, note, mood)), [setState]);
+  const updateAdventureIds = useCallback((field: "favoriteAdventureIds" | "savedAdventureIds", adventureId: string, action: "favorite" | "saved") => setState((current) => ({ ...current, [field]: toggleUniqueId(current[field], adventureId), recommendationHistory: appendRecommendationHistory(current.recommendationHistory, adventureId, action) })), [setState]);
+  const toggleFavoriteAdventure = useCallback((id: string) => updateAdventureIds("favoriteAdventureIds", id, "favorite"), [updateAdventureIds]);
+  const toggleSavedAdventure = useCallback((id: string) => updateAdventureIds("savedAdventureIds", id, "saved"), [updateAdventureIds]);
+  const dismissAdventure = useCallback((adventureId: string) => setState((current) => {
+    const now = new Date().toISOString(); const found = current.dismissedAdventures.find((item) => item.adventureId === adventureId);
+    return { ...current, dismissedAdventures: found ? current.dismissedAdventures.map((item) => item.adventureId === adventureId ? { ...item, dismissedAt: now, count: item.count + 1 } : item) : [...current.dismissedAdventures, { adventureId, dismissedAt: now, count: 1 }], recommendationHistory: appendRecommendationHistory(current.recommendationHistory, adventureId, "dismissed", now) };
+  }), [setState]);
+  const showAdventure = useCallback((id: string) => setState((current) => ({ ...current, recommendationHistory: appendRecommendationHistory(current.recommendationHistory, id, "shown") })), [setState]);
+  const selectAdventure = useCallback((id: string) => setState((current) => ({ ...current, selectedAdventureId: id })), [setState]);
+  const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
+  const completeMapLocation = useCallback((location: MapLocation) => setState((current) => completeMapLocationOperation(current, location)), [setState]);
+  const resetAppData = useCallback(() => setState(createInitialLifeQuestState()), [setState]);
+  const restoreDemoData = useCallback(() => setState((current) => ({ ...createInitialLifeQuestState(), profile: current.profile ? { ...current.profile, exp: 0, level: 1 } : null, quests: createDemoQuests(), stats: { ...defaultStats }, achievements: createDefaultAchievements(), occupationSuggestions: current.occupationSuggestions })), [setState]);
   const exportData = useCallback(() => JSON.stringify(state, null, 2), [state]);
-
-  const importData = useCallback(
-    (rawJson: string) => {
-      try {
-        const parsed = JSON.parse(rawJson) as LifeQuestState;
-
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-          return {
-            success: false,
-            message: "匯入失敗：JSON 必須是一個資料物件。"
-          };
-        }
-
-        setState(normalizeLifeQuestState(parsed));
-
-        return {
-          success: true,
-          message: "匯入成功，資料已更新。"
-        };
-      } catch {
-        return {
-          success: false,
-          message: "匯入失敗：請確認檔案是有效的 JSON。"
-        };
-      }
-    },
-    [setState]
-  );
-
-  const value = useMemo(
-    () => ({
-      state,
-      isHydrated,
-      onboard,
-      addQuest,
-      addOccupationQuestPack,
-      updateQuest,
-      deleteQuest,
-      completeQuest,
-      completeMicroAdventure,
-      toggleFavoriteAdventure,
-      toggleSavedAdventure,
-      dismissAdventure,
-      showAdventure,
-      selectAdventure,
-      clearSelectedAdventure,
-      completeMapLocation,
-      resetAppData,
-      restoreDemoData,
-      exportData,
-      importData
-    }),
-    [
-      addQuest,
-      addOccupationQuestPack,
-      completeMapLocation,
-      completeMicroAdventure,
-      toggleFavoriteAdventure,
-      toggleSavedAdventure,
-      dismissAdventure,
-      showAdventure,
-      selectAdventure,
-      clearSelectedAdventure,
-      completeQuest,
-      deleteQuest,
-      exportData,
-      importData,
-      isHydrated,
-      onboard,
-      resetAppData,
-      restoreDemoData,
-      state,
-      updateQuest
-    ]
-  );
-
+  const importData = useCallback((rawJson: string) => {
+    const result = importLifeQuestState(rawJson);
+    if (!result.success) return { success: false, message: "匯入失敗：請選擇有效的 Life Quest Map JSON 檔案。" };
+    setState(result.state);
+    return { success: true, message: "資料已匯入並遷移至 schemaVersion 2。" };
+  }, [setState]);
+  const value = useMemo(() => ({ state, isHydrated, onboard, addQuest: addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, resetAppData, restoreDemoData, exportData, importData }), [state, isHydrated, onboard, addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, resetAppData, restoreDemoData, exportData, importData]);
   return <LifeQuestContext.Provider value={value}>{children}</LifeQuestContext.Provider>;
 }
 
 export function useLifeQuest() {
   const context = useContext(LifeQuestContext);
-
-  if (!context) {
-    throw new Error("useLifeQuest must be used inside LifeQuestProvider.");
-  }
-
+  if (!context) throw new Error("useLifeQuest must be used inside LifeQuestProvider.");
   return context;
 }

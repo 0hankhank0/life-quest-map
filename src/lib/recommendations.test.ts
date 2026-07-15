@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createInitialLifeQuestState, normalizeLifeQuestState } from "../data/defaults";
+import { createInitialLifeQuestState } from "../data/defaults";
+import { migrateLifeQuestState } from "./stateMigration";
 import { microAdventures } from "../data/microAdventures";
 import { getAdventureRecommendations } from "./recommendations";
 
@@ -29,6 +30,12 @@ describe("micro-adventure recommendations", () => {
     const id = getAdventureRecommendations(microAdventures, base)[0].adventure.id;
     expect(getAdventureRecommendations(microAdventures, { ...base, recentlyShownIds: [id] })[0].adventure.id).not.toBe(id);
   });
+  it("discourages categories that were shown repeatedly", () => {
+    const target = microAdventures[0];
+    const normal = getAdventureRecommendations([target], base)[0].score;
+    const varied = getAdventureRecommendations([target], { ...base, recentlyShownCategories: [target.category, target.category] })[0].score;
+    expect(varied).toBeLessThan(normal);
+  });
   it("gives a favorite a small score boost", () => {
     const target = microAdventures.find((adventure) => adventure.id === "water-and-breathe")!;
     const normal = getAdventureRecommendations([target], base)[0].score;
@@ -47,14 +54,14 @@ describe("micro-adventure recommendations", () => {
 describe("preference migration", () => {
   it("adds safe defaults to older state", () => {
     const old = createInitialLifeQuestState();
-    const normalized = normalizeLifeQuestState({ ...old, favoriteAdventureIds: undefined as never, savedAdventureIds: undefined as never, dismissedAdventures: undefined as never, recommendationHistory: undefined as never, selectedAdventureId: undefined as never });
+    const normalized = migrateLifeQuestState({ ...old, favoriteAdventureIds: undefined, savedAdventureIds: undefined, dismissedAdventures: undefined, recommendationHistory: undefined, selectedAdventureId: undefined });
     expect(normalized.favoriteAdventureIds).toEqual([]);
     expect(normalized.savedAdventureIds).toEqual([]);
   });
   it("deduplicates IDs and caps history at 100", () => {
     const state = createInitialLifeQuestState();
     const history = Array.from({ length: 105 }, (_, index) => ({ adventureId: String(index), shownAt: new Date().toISOString(), action: "shown" as const }));
-    const normalized = normalizeLifeQuestState({ ...state, favoriteAdventureIds: ["a", "a"], savedAdventureIds: ["b", "b"], recommendationHistory: history });
+    const normalized = migrateLifeQuestState({ ...state, favoriteAdventureIds: ["a", "a"], savedAdventureIds: ["b", "b"], recommendationHistory: history });
     expect(normalized.favoriteAdventureIds).toEqual(["a"]);
     expect(normalized.savedAdventureIds).toEqual(["b"]);
     expect(normalized.recommendationHistory).toHaveLength(100);

@@ -5,7 +5,7 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 export function useLocalStorage<T>(
   key: string,
   createInitialValue: () => T,
-  normalizeValue?: (value: T) => T
+  normalizeValue?: (value: unknown) => T
 ): [T, Dispatch<SetStateAction<T>>, boolean] {
   const [value, setValue] = useState<T>(() => createInitialValue());
   const [isHydrated, setIsHydrated] = useState(false);
@@ -14,8 +14,8 @@ export function useLocalStorage<T>(
     try {
       const rawValue = window.localStorage.getItem(key);
       if (rawValue) {
-        const parsedValue = JSON.parse(rawValue) as T;
-        setValue(normalizeValue ? normalizeValue(parsedValue) : parsedValue);
+        const parsedValue: unknown = JSON.parse(rawValue);
+        setValue(normalizeValue ? normalizeValue(parsedValue) : (parsedValue as T));
       } else {
         setValue(createInitialValue());
       }

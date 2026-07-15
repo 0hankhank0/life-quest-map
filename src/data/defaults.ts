@@ -2,12 +2,12 @@ import type {
   Achievement,
   LifeQuestState,
   MapLocation,
-  LifeMoment,
-  OccupationSuggestion,
   Quest,
-  Stats
+  Stats,
+  UserSettings
 } from "@/types";
 import { getExpReward } from "@/lib/progression";
+import { todayKey } from "@/lib/utils";
 
 export const STORAGE_KEY = "lifeQuestMap:v0.1";
 
@@ -18,6 +18,12 @@ export const defaultStats: Stats = {
   social: 0,
   discipline: 0,
   exploration: 0
+};
+
+export const defaultUserSettings: UserSettings = {
+  theme: "system",
+  reducedMotion: false,
+  notificationsEnabled: false
 };
 
 export function createDemoQuests(now = new Date().toISOString()): Quest[] {
@@ -205,6 +211,7 @@ export const mapLocations: MapLocation[] = [
 
 export function createInitialLifeQuestState(): LifeQuestState {
   return {
+    schemaVersion: 2,
     profile: null,
     quests: createDemoQuests(),
     stats: { ...defaultStats },
@@ -216,105 +223,18 @@ export function createInitialLifeQuestState(): LifeQuestState {
     savedAdventureIds: [],
     dismissedAdventures: [],
     recommendationHistory: [],
-    selectedAdventureId: null
-  };
-}
-
-type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
-
-export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
-  const fallback = createInitialLifeQuestState();
-  const quests = Array.isArray(value.quests) ? value.quests : fallback.quests;
-  const achievements = Array.isArray(value.achievements)
-    ? value.achievements
-    : fallback.achievements;
-  const mapCompletions = Array.isArray(value.mapCompletions) ? value.mapCompletions : [];
-  const occupationSuggestions: OccupationSuggestion[] = Array.isArray(
-    value.occupationSuggestions
-  )
-    ? value.occupationSuggestions
-    : [];
-  const lifeMoments: LifeMoment[] = Array.isArray(value.lifeMoments)
-    ? value.lifeMoments.filter(
-        (moment): moment is LifeMoment =>
-          Boolean(moment) &&
-          typeof moment.id === "string" &&
-          typeof moment.adventureName === "string" &&
-          typeof moment.note === "string" &&
-          typeof moment.mood === "string" &&
-          typeof moment.completedAt === "string"
-      ).map((moment) => ({
-        ...moment,
-        adventureId: typeof moment.adventureId === "string" ? moment.adventureId : undefined,
-        rewardGranted: typeof moment.rewardGranted === "boolean" ? moment.rewardGranted : undefined
-      }))
-    : [];
-  const uniqueIds = (items: unknown): string[] =>
-    Array.isArray(items)
-      ? [...new Set(items.filter((item): item is string => typeof item === "string"))]
-      : [];
-  const dismissedAdventures = Array.isArray(value.dismissedAdventures)
-    ? value.dismissedAdventures.filter(
-        (item): item is { adventureId: string; dismissedAt: string; count: number } =>
-          Boolean(item) && typeof item.adventureId === "string" &&
-          typeof item.dismissedAt === "string" && typeof item.count === "number"
-      ).map((item) => ({ ...item, count: Math.max(1, item.count) }))
-    : [];
-  const recommendationHistory = Array.isArray(value.recommendationHistory)
-    ? value.recommendationHistory.filter(
-        (item): item is { adventureId: string; shownAt: string; action: "shown" | "favorite" | "saved" | "dismissed" | "completed" } =>
-          Boolean(item) && typeof item.adventureId === "string" && typeof item.shownAt === "string" &&
-          ["shown", "favorite", "saved", "dismissed", "completed"].includes(item.action)
-      ).slice(-100)
-    : [];
-
-  return {
-    ...fallback,
-    ...value,
-    profile: value.profile
-      ? {
-          ...value.profile,
-          lifeStage:
-            value.profile.lifeStage ??
-            (value.profile.occupation === "student" || value.profile.role === "student"
-              ? "student"
-              : "adult"),
-          studentStage:
-            value.profile.studentStage ??
-            (value.profile.occupation === "student" || value.profile.role === "student"
-              ? "university"
-              : undefined),
-          occupation: value.profile.occupation ?? "general",
-          focus: value.profile.focus ?? value.profile.focuses?.[0] ?? "learning",
-          focuses:
-            Array.isArray(value.profile.focuses) && value.profile.focuses.length > 0
-              ? value.profile.focuses
-              : [value.profile.focus ?? "learning"]
-        }
-      : null,
-    quests: quests.map((quest: PartialQuest) => ({
-      ...quest,
-      type: quest.type ?? "side",
-      category: quest.category ?? "learning",
-      occupation: quest.occupation ?? "general",
-      difficulty: quest.difficulty ?? "easy",
-      expReward: quest.expReward ?? getExpReward(quest.difficulty ?? "easy"),
-      status: quest.status ?? "pending",
-      createdAt: quest.createdAt ?? new Date().toISOString(),
-      completedAt: quest.completedAt ?? null
-    })) as Quest[],
-    stats: {
-      ...defaultStats,
-      ...(value.stats ?? {})
+    selectedAdventureId: null,
+    dailyProgress: {
+      date: todayKey(),
+      completedQuestIds: []
     },
-    achievements,
-    mapCompletions,
-    occupationSuggestions,
-    lifeMoments,
-    favoriteAdventureIds: uniqueIds(value.favoriteAdventureIds),
-    savedAdventureIds: uniqueIds(value.savedAdventureIds),
-    dismissedAdventures,
-    recommendationHistory,
-    selectedAdventureId: typeof value.selectedAdventureId === "string" ? value.selectedAdventureId : null
+    streak: {
+      current: 0,
+      longest: 0,
+      lastCompletedDate: null
+    },
+    customMapLocations: [],
+    unlockedSkillNodeIds: [],
+    userSettings: { ...defaultUserSettings }
   };
 }

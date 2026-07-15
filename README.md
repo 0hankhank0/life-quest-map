@@ -1,5 +1,13 @@
 # Life Quest Map
 
+## Data schema and migration
+
+Life Quest Map persists its local state under the existing `lifeQuestMap:v0.1` LocalStorage key. The key is intentionally retained so existing browser data is discovered automatically; the payload itself now declares `schemaVersion: 2`.
+
+When the app starts or a JSON backup is imported, it migrates data field by field. Missing v2 fields receive safe defaults, while valid quests, profile data, life moments, and preferences are retained even when an unrelated field is invalid. Legacy `lifeMoments` without `adventureId` or `rewardGranted` remain supported.
+
+Version 2 adds daily completion summaries, streaks, custom map locations, unlocked skill-node IDs, and user settings. Invalid JSON or a JSON value that is not an object is rejected during import without replacing the current data.
+
 ## 微冒險偏好
 
 - 可以收藏提案、加入「稍後再做」，或標示「不適合我」。
