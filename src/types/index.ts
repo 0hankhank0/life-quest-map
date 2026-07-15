@@ -138,4 +138,23 @@ export interface LifeQuestState {
   mapCompletions: string[];
   occupationSuggestions: OccupationSuggestion[];
   lifeMoments: LifeMoment[];
+  favoriteAdventureIds: string[];
+  savedAdventureIds: string[];
+  dismissedAdventures: DismissedAdventure[];
+  recommendationHistory: RecommendationHistoryEntry[];
+  selectedAdventureId: string | null;
+}
+
+export interface DismissedAdventure {
+  adventureId: string;
+  dismissedAt: string;
+  count: number;
+}
+
+export type RecommendationAction = "shown" | "favorite" | "saved" | "dismissed" | "completed";
+
+export interface RecommendationHistoryEntry {
+  adventureId: string;
+  shownAt: string;
+  action: RecommendationAction;
 }

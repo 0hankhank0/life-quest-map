@@ -64,6 +64,12 @@ interface LifeQuestContextValue {
     note: string,
     mood: LifeMomentMood
   ) => void;
+  toggleFavoriteAdventure: (adventureId: string) => void;
+  toggleSavedAdventure: (adventureId: string) => void;
+  dismissAdventure: (adventureId: string) => void;
+  showAdventure: (adventureId: string) => void;
+  selectAdventure: (adventureId: string) => void;
+  clearSelectedAdventure: () => void;
   completeMapLocation: (location: MapLocation) => void;
   resetAppData: () => void;
   restoreDemoData: () => void;
@@ -316,12 +322,53 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
               rewardGranted: true
             },
             ...withExp.lifeMoments
-          ]
+          ],
+          savedAdventureIds: current.savedAdventureIds.filter((id) => id !== adventureId),
+          recommendationHistory: [
+            ...current.recommendationHistory,
+            { adventureId, shownAt: now, action: "completed" as const }
+          ].slice(-100)
         };
       });
     },
     [setState]
   );
+
+  const updateAdventureIds = useCallback((field: "favoriteAdventureIds" | "savedAdventureIds", adventureId: string, action: "favorite" | "saved") => {
+    setState((current) => {
+      const hasAdventure = current[field].includes(adventureId);
+      const now = new Date().toISOString();
+      return {
+        ...current,
+        [field]: hasAdventure ? current[field].filter((id) => id !== adventureId) : [...current[field], adventureId],
+        recommendationHistory: [
+          ...current.recommendationHistory,
+          { adventureId, shownAt: now, action }
+        ].slice(-100)
+      };
+    });
+  }, [setState]);
+
+  const toggleFavoriteAdventure = useCallback((adventureId: string) => updateAdventureIds("favoriteAdventureIds", adventureId, "favorite"), [updateAdventureIds]);
+  const toggleSavedAdventure = useCallback((adventureId: string) => updateAdventureIds("savedAdventureIds", adventureId, "saved"), [updateAdventureIds]);
+  const dismissAdventure = useCallback((adventureId: string) => {
+    setState((current) => {
+      const now = new Date().toISOString();
+      const found = current.dismissedAdventures.find((item) => item.adventureId === adventureId);
+      return {
+        ...current,
+        dismissedAdventures: found
+          ? current.dismissedAdventures.map((item) => item.adventureId === adventureId ? { ...item, dismissedAt: now, count: item.count + 1 } : item)
+          : [...current.dismissedAdventures, { adventureId, dismissedAt: now, count: 1 }],
+        recommendationHistory: [...current.recommendationHistory, { adventureId, shownAt: now, action: "dismissed" as const }].slice(-100)
+      };
+    });
+  }, [setState]);
+  const showAdventure = useCallback((adventureId: string) => {
+    setState((current) => ({ ...current, recommendationHistory: [...current.recommendationHistory, { adventureId, shownAt: new Date().toISOString(), action: "shown" as const }].slice(-100) }));
+  }, [setState]);
+  const selectAdventure = useCallback((adventureId: string) => setState((current) => ({ ...current, selectedAdventureId: adventureId })), [setState]);
+  const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
 
   const completeMapLocation = useCallback(
     (location: MapLocation) => {
@@ -431,6 +478,12 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
       deleteQuest,
       completeQuest,
       completeMicroAdventure,
+      toggleFavoriteAdventure,
+      toggleSavedAdventure,
+      dismissAdventure,
+      showAdventure,
+      selectAdventure,
+      clearSelectedAdventure,
       completeMapLocation,
       resetAppData,
       restoreDemoData,
@@ -442,6 +495,12 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
       addOccupationQuestPack,
       completeMapLocation,
       completeMicroAdventure,
+      toggleFavoriteAdventure,
+      toggleSavedAdventure,
+      dismissAdventure,
+      showAdventure,
+      selectAdventure,
+      clearSelectedAdventure,
       completeQuest,
       deleteQuest,
       exportData,

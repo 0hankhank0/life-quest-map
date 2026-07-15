@@ -211,7 +211,12 @@ export function createInitialLifeQuestState(): LifeQuestState {
     achievements: createDefaultAchievements(),
     mapCompletions: [],
     occupationSuggestions: [],
-    lifeMoments: []
+    lifeMoments: [],
+    favoriteAdventureIds: [],
+    savedAdventureIds: [],
+    dismissedAdventures: [],
+    recommendationHistory: [],
+    selectedAdventureId: null
   };
 }
 
@@ -243,6 +248,24 @@ export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
         adventureId: typeof moment.adventureId === "string" ? moment.adventureId : undefined,
         rewardGranted: typeof moment.rewardGranted === "boolean" ? moment.rewardGranted : undefined
       }))
+    : [];
+  const uniqueIds = (items: unknown): string[] =>
+    Array.isArray(items)
+      ? [...new Set(items.filter((item): item is string => typeof item === "string"))]
+      : [];
+  const dismissedAdventures = Array.isArray(value.dismissedAdventures)
+    ? value.dismissedAdventures.filter(
+        (item): item is { adventureId: string; dismissedAt: string; count: number } =>
+          Boolean(item) && typeof item.adventureId === "string" &&
+          typeof item.dismissedAt === "string" && typeof item.count === "number"
+      ).map((item) => ({ ...item, count: Math.max(1, item.count) }))
+    : [];
+  const recommendationHistory = Array.isArray(value.recommendationHistory)
+    ? value.recommendationHistory.filter(
+        (item): item is { adventureId: string; shownAt: string; action: "shown" | "favorite" | "saved" | "dismissed" | "completed" } =>
+          Boolean(item) && typeof item.adventureId === "string" && typeof item.shownAt === "string" &&
+          ["shown", "favorite", "saved", "dismissed", "completed"].includes(item.action)
+      ).slice(-100)
     : [];
 
   return {
@@ -287,6 +310,11 @@ export function normalizeLifeQuestState(value: LifeQuestState): LifeQuestState {
     achievements,
     mapCompletions,
     occupationSuggestions,
-    lifeMoments
+    lifeMoments,
+    favoriteAdventureIds: uniqueIds(value.favoriteAdventureIds),
+    savedAdventureIds: uniqueIds(value.savedAdventureIds),
+    dismissedAdventures,
+    recommendationHistory,
+    selectedAdventureId: typeof value.selectedAdventureId === "string" ? value.selectedAdventureId : null
   };
 }

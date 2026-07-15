@@ -27,7 +27,7 @@ export function LifeQuestShell() {
     <div className="min-h-[100dvh] bg-zinc-950 text-zinc-100">
       <main className="mx-auto min-h-[100dvh] w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         {activeTab === "home" ? <HomePanel onNavigate={setActiveTab} /> : null}
-        {activeTab === "quests" ? <QuestGuild /> : null}
+        {activeTab === "quests" ? <QuestGuild onNavigate={setActiveTab} /> : null}
         {activeTab === "map" ? <MapPanel /> : null}
         {activeTab === "skills" ? <SkillTreePanel /> : null}
         {activeTab === "profile" ? <ProfilePanel /> : null}
