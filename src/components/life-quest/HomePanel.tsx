@@ -10,7 +10,7 @@ import { microAdventures, type AvailableTime, type Mood } from "@/data/microAdve
 import { formatLocalShortDate, getRecentCompletedQuests, getTodayActivity, getWeekActivity } from "@/lib/activityStats";
 import { getNextDisplayedAdventureId, resolveDisplayedAdventure } from "@/lib/displayedAdventure";
 import { getAdventureRecommendations } from "@/lib/recommendations";
-import { todayKey } from "@/lib/utils";
+import { calendarDateKey } from "@/lib/utils";
 
 const moods: Array<{ value: Mood; label: string }> = [
   { value: "bored", label: "無聊" }, { value: "tired", label: "疲憊" }, { value: "good", label: "狀態不錯" },
@@ -36,7 +36,7 @@ export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void })
   const today = useMemo(() => getTodayActivity(state.quests), [state.quests]);
   const week = useMemo(() => getWeekActivity(state.quests), [state.quests]);
   const recentCompleted = useMemo(() => getRecentCompletedQuests(state.quests), [state.quests]);
-  const completedTodayIds = useMemo(() => state.lifeMoments.filter((moment) => moment.adventureId && (moment.rewardGranted ?? true) && todayKey(new Date(moment.completedAt)) === today.date).map((moment) => moment.adventureId as string), [state.lifeMoments, today.date]);
+  const completedTodayIds = useMemo(() => state.lifeMoments.filter((moment) => moment.adventureId && (moment.rewardGranted ?? true) && calendarDateKey(new Date(moment.completedAt)) === today.date).map((moment) => moment.adventureId as string), [state.lifeMoments, today.date]);
   const shownHistory = useMemo(() => state.recommendationHistory.filter((item) => item.action === "shown").slice(-8), [state.recommendationHistory]);
   const recentlyShownIds = useMemo(() => shownHistory.map((item) => item.adventureId), [shownHistory]);
   const recentlyShownCategories = useMemo(() => shownHistory.flatMap((item) => microAdventures.filter((adventure) => adventure.id === item.adventureId).map((adventure) => adventure.category)), [shownHistory]);

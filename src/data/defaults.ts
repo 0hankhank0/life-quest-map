@@ -7,7 +7,7 @@ import type {
   UserSettings
 } from "@/types";
 import { getExpReward } from "@/lib/progression";
-import { todayKey } from "@/lib/utils";
+import { calendarDateKey } from "@/lib/utils";
 
 export const STORAGE_KEY = "lifeQuestMap:v0.1";
 
@@ -233,7 +233,7 @@ export function createInitialLifeQuestState(): LifeQuestState {
     recommendationHistory: [],
     selectedAdventureId: null,
     dailyProgress: {
-      date: todayKey(),
+      date: calendarDateKey(),
       completedQuestIds: [],
       expEarned: 0
     },

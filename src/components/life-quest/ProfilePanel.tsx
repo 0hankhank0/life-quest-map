@@ -14,6 +14,7 @@ import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { categoryLabels, occupationLabels, roleOptions, studentStageLabels } from "@/data/labels";
 import { getStrongestStat } from "@/lib/progression";
+import { calendarDateKey } from "@/lib/utils";
 
 export function ProfilePanel() {
   const { state, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
@@ -157,7 +158,7 @@ export function ProfilePanel() {
               const url = URL.createObjectURL(blob);
               const anchor = document.createElement("a");
               anchor.href = url;
-              anchor.download = `life-quest-map-${new Date().toISOString().slice(0, 10)}.json`;
+              anchor.download = `life-quest-map-${calendarDateKey()}.json`;
               anchor.click();
               URL.revokeObjectURL(url);
               setDataMessage("已匯出目前資料。");

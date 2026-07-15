@@ -1,5 +1,6 @@
 import { CheckCircle, Sparkle } from "@phosphor-icons/react";
 import type { LifeMoment, LifeMomentMood } from "@/types";
+import { addCalendarDays, calendarDateKey, calendarWeekday } from "@/lib/utils";
 
 const moodLabels: Record<LifeMomentMood, string> = {
   happier: "更開心",
@@ -9,20 +10,11 @@ const moodLabels: Record<LifeMomentMood, string> = {
   trySomethingElse: "想換個方式試試"
 };
 
-function getStartOfThisWeek(now = new Date()) {
-  const start = new Date(now);
-  const day = start.getDay();
-  const daysSinceMonday = day === 0 ? 6 : day - 1;
-
-  start.setDate(start.getDate() - daysSinceMonday);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
 function getThisWeeksMoments(lifeMoments: LifeMoment[], now = new Date()) {
-  const startOfWeek = getStartOfThisWeek(now);
-
-  return lifeMoments.filter((moment) => new Date(moment.completedAt) >= startOfWeek);
+  const today = calendarDateKey(now);
+  const weekday = calendarWeekday(today);
+  const monday = addCalendarDays(today, weekday === 0 ? -6 : 1 - weekday);
+  return lifeMoments.filter((moment) => calendarDateKey(new Date(moment.completedAt)) >= monday);
 }
 
 function getMostCommonMood(lifeMoments: LifeMoment[]) {

@@ -2,7 +2,7 @@ import { evaluateAchievements } from "@/lib/achievements";
 import { recordDailyQuestCompletion, updateStreakForCompletion } from "@/lib/dailyProgress";
 import { appendRecommendationHistory } from "@/lib/adventurePreferences";
 import { STAT_GAIN_PER_QUEST, addStat, getExpReward, getLevelFromExp } from "@/lib/progression";
-import { createId, todayKey } from "@/lib/utils";
+import { calendarDateKey, createId } from "@/lib/utils";
 import type { LifeMomentMood, LifeQuestState, MapLocation, Quest, QuestDraft } from "@/types";
 
 function awardExperience(state: LifeQuestState, amount: number): LifeQuestState {
@@ -88,7 +88,7 @@ export function completeQuest(state: LifeQuestState, questId: string, now = new 
 export function completeMicroAdventure(state: LifeQuestState, adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood, now = new Date().toISOString()): LifeQuestState {
   const alreadyRewardedToday = state.lifeMoments.some((moment) =>
     (moment.adventureId === adventureId || (!moment.adventureId && moment.adventureName === draft.title)) &&
-    (moment.rewardGranted ?? true) && todayKey(new Date(moment.completedAt)) === todayKey(new Date(now)));
+    (moment.rewardGranted ?? true) && calendarDateKey(new Date(moment.completedAt)) === calendarDateKey(new Date(now)));
   if (alreadyRewardedToday) return state;
   const quest = { ...createQuest(draft, now, createId("micro-adventure")), status: "completed" as const, completedAt: now };
   const completed = applyCompletion(state, quest, now);

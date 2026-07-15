@@ -6,7 +6,7 @@ import {
 } from "@/data/defaults";
 import { buildStreakFromCompletionDates } from "@/lib/dailyProgress";
 import { getExpReward } from "@/lib/progression";
-import { todayKey } from "@/lib/utils";
+import { calendarDateKey } from "@/lib/utils";
 import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask } from "@/types";
 
 type StateRecord = Record<string, unknown>;
@@ -17,7 +17,7 @@ const uniqueIds = (items: unknown): string[] =>
   Array.isArray(items) ? [...new Set(items.filter((item): item is string => typeof item === "string"))] : [];
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const isDateString = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(new Date(value).getTime());
-const completionDate = (value: unknown): string | null => isDateString(value) ? todayKey(new Date(value)) : null;
+const completionDate = (value: unknown): string | null => isDateString(value) ? calendarDateKey(new Date(value)) : null;
 const isLocalDate = (value: unknown): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 function normalizeSubtasks(value: unknown): QuestSubtask[] {
@@ -39,7 +39,7 @@ function normalizeCustomMapLocations(value: unknown): LifeQuestState["customMapL
 export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQuestState {
   const fallback = createInitialLifeQuestState();
   const source = isRecord(value) ? value : {};
-  const nowKey = todayKey(now);
+  const nowKey = calendarDateKey(now);
   const rawQuests = Array.isArray(source.quests) ? source.quests : fallback.quests;
   const quests = rawQuests.filter(isRecord).map((quest) => {
     const partial = quest as PartialQuest;
