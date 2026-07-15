@@ -28,7 +28,20 @@ function applyCompletion(state: LifeQuestState, quest: Quest, now: string, mapCo
 }
 
 export function createQuest(draft: QuestDraft, now = new Date().toISOString(), id = createId("quest")): Quest {
-  return { id, ...draft, expReward: getExpReward(draft.difficulty), status: "pending", createdAt: now, completedAt: null };
+  return {
+    id,
+    ...draft,
+    expReward: getExpReward(draft.difficulty),
+    status: "pending",
+    createdAt: now,
+    completedAt: null,
+    priority: draft.priority ?? "normal",
+    dueDate: draft.dueDate ?? null,
+    estimatedMinutes: draft.estimatedMinutes ?? null,
+    recurrence: draft.recurrence ?? "none",
+    subtasks: draft.subtasks ?? [],
+    questChainId: draft.questChainId ?? null
+  };
 }
 
 export function addQuest(state: LifeQuestState, draft: QuestDraft): LifeQuestState {
@@ -42,7 +55,7 @@ export function addQuestPack(state: LifeQuestState, drafts: QuestDraft[], now = 
 }
 
 export function updateQuest(state: LifeQuestState, questId: string, draft: QuestDraft): LifeQuestState {
-  return { ...state, quests: state.quests.map((quest) => quest.id === questId ? { ...quest, ...draft, expReward: getExpReward(draft.difficulty) } : quest) };
+  return { ...state, quests: state.quests.map((quest) => quest.id === questId && quest.status !== "completed" ? { ...quest, ...draft, expReward: getExpReward(draft.difficulty), priority: draft.priority ?? quest.priority, dueDate: draft.dueDate ?? null, estimatedMinutes: draft.estimatedMinutes ?? null, recurrence: draft.recurrence ?? "none", subtasks: draft.subtasks ?? [], questChainId: draft.questChainId ?? quest.questChainId } : quest) };
 }
 
 export function deleteQuest(state: LifeQuestState, questId: string): LifeQuestState {
@@ -52,9 +65,24 @@ export function deleteQuest(state: LifeQuestState, questId: string): LifeQuestSt
 export function completeQuest(state: LifeQuestState, questId: string, now = new Date().toISOString()): LifeQuestState {
   const target = state.quests.find((quest) => quest.id === questId);
   if (!target || target.status === "completed") return state;
-  const completedQuest = { ...target, status: "completed" as const, completedAt: now };
+  const recurrence = target.recurrence ?? "none";
+  const subtasks = target.subtasks ?? [];
+  const chainId = recurrence === "none" ? target.questChainId : target.questChainId ?? `chain-${target.id}`;
+  const completedQuest = { ...target, questChainId: chainId, status: "completed" as const, completedAt: now };
   const base = { ...state, quests: state.quests.filter((quest) => quest.id !== questId) };
-  return applyCompletion(base, completedQuest, now);
+  const completedState = applyCompletion(base, completedQuest, now);
+  if (recurrence === "none" || state.quests.some((quest) => quest.id !== target.id && quest.status === "pending" && quest.questChainId === chainId)) return completedState;
+  const nextQuest: Quest = {
+    ...target,
+    id: createId("recurring-quest"),
+    status: "pending",
+    createdAt: now,
+    completedAt: null,
+    dueDate: null,
+    questChainId: chainId,
+    subtasks: subtasks.map((subtask) => ({ ...subtask, id: createId("subtask"), completed: false, completedAt: null }))
+  };
+  return { ...completedState, quests: [nextQuest, ...completedState.quests] };
 }
 
 export function completeMicroAdventure(state: LifeQuestState, adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood, now = new Date().toISOString()): LifeQuestState {
@@ -74,6 +102,6 @@ export function completeMicroAdventure(state: LifeQuestState, adventureId: strin
 
 export function completeMapLocation(state: LifeQuestState, location: MapLocation, now = new Date().toISOString()): LifeQuestState {
   if (state.mapCompletions.includes(location.id)) return state;
-  const quest: Quest = { id: `map-${location.id}`, title: location.questTitle, description: `${location.name} map quest`, type: "map", category: location.category, occupation: "general", difficulty: location.expReward >= 100 ? "hard" : location.expReward >= 50 ? "normal" : "easy", expReward: location.expReward, status: "completed", createdAt: now, completedAt: now };
+  const quest: Quest = { id: `map-${location.id}`, title: location.questTitle, description: `${location.name} map quest`, type: "map", category: location.category, occupation: "general", difficulty: location.expReward >= 100 ? "hard" : location.expReward >= 50 ? "normal" : "easy", expReward: location.expReward, status: "completed", createdAt: now, completedAt: now, priority: "normal", dueDate: null, estimatedMinutes: null, recurrence: "none", subtasks: [], questChainId: null };
   return applyCompletion(state, quest, now, [...state.mapCompletions, location.id]);
 }

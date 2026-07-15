@@ -9,7 +9,7 @@ describe("v2 state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
@@ -21,6 +21,13 @@ describe("v2 state migration", () => {
     const completedQuest = { ...old.quests[0], status: "completed" as const, completedAt: "2026-07-15T08:00:00.000Z" };
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: 2, quests: [completedQuest], dailyProgress: { date: "2026-07-15", completedQuestIds: [completedQuest.id] } }, now);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [completedQuest.id], expEarned: completedQuest.expReward });
+  });
+
+  it("adds v4 task planning defaults to v3 quests", () => {
+    const old = createInitialLifeQuestState();
+    const legacyQuest = { ...old.quests[0], priority: undefined, dueDate: undefined, estimatedMinutes: undefined, recurrence: undefined, subtasks: undefined, questChainId: undefined };
+    const migrated = migrateLifeQuestState({ ...old, schemaVersion: 3, quests: [legacyQuest] }, now);
+    expect(migrated.quests[0]).toMatchObject({ priority: "normal", dueDate: null, estimatedMinutes: null, recurrence: "none", subtasks: [], questChainId: null });
   });
 
   it("normalizes invalid fields independently without dropping valid quests", () => {

@@ -7,7 +7,7 @@ import {
 import { buildStreakFromCompletionDates } from "@/lib/dailyProgress";
 import { getExpReward } from "@/lib/progression";
 import { todayKey } from "@/lib/utils";
-import type { LifeQuestState, Quest, QuestDifficulty } from "@/types";
+import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask } from "@/types";
 
 type StateRecord = Record<string, unknown>;
 type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
@@ -18,6 +18,13 @@ const uniqueIds = (items: unknown): string[] =>
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const isDateString = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(new Date(value).getTime());
 const completionDate = (value: unknown): string | null => isDateString(value) ? todayKey(new Date(value)) : null;
+const isLocalDate = (value: unknown): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+function normalizeSubtasks(value: unknown): QuestSubtask[] {
+  return Array.isArray(value) ? value.filter((subtask): subtask is StateRecord => isRecord(subtask) && typeof subtask.id === "string" && typeof subtask.title === "string")
+    .map((subtask) => ({ id: subtask.id as string, title: (subtask.title as string).trim(), completed: subtask.completed === true, completedAt: isDateString(subtask.completedAt) ? subtask.completedAt : null }))
+    .filter((subtask) => subtask.title.length > 0) : [];
+}
 
 function normalizeCustomMapLocations(value: unknown): LifeQuestState["customMapLocations"] {
   return Array.isArray(value)
@@ -37,6 +44,8 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
   const quests = rawQuests.filter(isRecord).map((quest) => {
     const partial = quest as PartialQuest;
     const difficulty = (partial.difficulty ?? "easy") as QuestDifficulty;
+    const priority: QuestPriority = partial.priority === "low" || partial.priority === "high" ? partial.priority : "normal";
+    const recurrence: QuestRecurrence = partial.recurrence === "daily" || partial.recurrence === "weekly" ? partial.recurrence : "none";
     return {
       ...partial,
       type: partial.type ?? "side",
@@ -46,7 +55,13 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
       expReward: typeof partial.expReward === "number" ? partial.expReward : getExpReward(difficulty),
       status: partial.status === "completed" ? "completed" : "pending",
       createdAt: typeof partial.createdAt === "string" ? partial.createdAt : now.toISOString(),
-      completedAt: isDateString(partial.completedAt) ? partial.completedAt : null
+      completedAt: isDateString(partial.completedAt) ? partial.completedAt : null,
+      priority,
+      dueDate: isLocalDate(partial.dueDate) ? partial.dueDate : null,
+      estimatedMinutes: typeof partial.estimatedMinutes === "number" && Number.isFinite(partial.estimatedMinutes) && partial.estimatedMinutes > 0 ? Math.round(partial.estimatedMinutes) : null,
+      recurrence,
+      subtasks: normalizeSubtasks(partial.subtasks),
+      questChainId: typeof partial.questChainId === "string" && partial.questChainId ? partial.questChainId : null
     };
   }).filter((quest): quest is Quest => typeof quest.id === "string" && typeof quest.title === "string" && typeof quest.description === "string");
   const lifeMoments: LifeQuestState["lifeMoments"] = (Array.isArray(source.lifeMoments)
@@ -75,7 +90,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },

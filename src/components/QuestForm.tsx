@@ -1,213 +1,36 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { FloppyDisk, X } from "@phosphor-icons/react";
-import {
-  categoryLabels,
-  difficultyLabels,
-  occupationOptions,
-  questTypeLabels
-} from "@/data/labels";
+import { Check, FloppyDisk, Plus, Trash, X } from "@phosphor-icons/react";
+import { categoryLabels, difficultyLabels, occupationOptions, questTypeLabels } from "@/data/labels";
 import { getExpReward } from "@/lib/progression";
-import type {
-  OccupationCategory,
-  Quest,
-  QuestCategory,
-  QuestDifficulty,
-  QuestDraft,
-  QuestType
-} from "@/types";
+import { createId } from "@/lib/utils";
+import type { OccupationCategory, Quest, QuestCategory, QuestDifficulty, QuestDraft, QuestPriority, QuestRecurrence, QuestSubtask, QuestType } from "@/types";
 
-interface QuestFormProps {
-  quest?: Quest | null;
-  onSubmit: (draft: QuestDraft) => void;
-  onCancel: () => void;
-}
-
-const initialDraft: QuestDraft = {
-  title: "",
-  description: "",
-  type: "side",
-  category: "learning",
-  occupation: "general",
-  difficulty: "easy"
-};
-
+interface QuestFormProps { quest?: Quest | null; onSubmit: (draft: QuestDraft) => void; onCancel: () => void; }
+const initialDraft: QuestDraft = { title: "", description: "", type: "side", category: "learning", occupation: "general", difficulty: "easy", priority: "normal", dueDate: null, estimatedMinutes: null, recurrence: "none", subtasks: [] };
 const questTypes: QuestType[] = ["main", "side", "daily", "hidden"];
-const categories: QuestCategory[] = [
-  "learning",
-  "fitness",
-  "creativity",
-  "social",
-  "discipline",
-  "exploration"
-];
+const categories: QuestCategory[] = ["learning", "fitness", "creativity", "social", "discipline", "exploration"];
 const difficulties: QuestDifficulty[] = ["easy", "normal", "hard"];
+const priorities: Array<{ value: QuestPriority; label: string }> = [{ value: "high", label: "高" }, { value: "normal", label: "普通" }, { value: "low", label: "低" }];
+const recurrences: Array<{ value: QuestRecurrence; label: string }> = [{ value: "none", label: "不重複" }, { value: "daily", label: "每日" }, { value: "weekly", label: "每週" }];
 
 export function QuestForm({ quest, onSubmit, onCancel }: QuestFormProps) {
   const [draft, setDraft] = useState<QuestDraft>(initialDraft);
   const [error, setError] = useState("");
+  useEffect(() => { setDraft(quest ? { title: quest.title, description: quest.description, type: quest.type === "map" ? "side" : quest.type, category: quest.category, occupation: quest.occupation, difficulty: quest.difficulty, priority: quest.priority, dueDate: quest.dueDate, estimatedMinutes: quest.estimatedMinutes, recurrence: quest.recurrence, subtasks: quest.subtasks, questChainId: quest.questChainId } : initialDraft); setError(""); }, [quest]);
+  const subtasks = draft.subtasks ?? [];
+  const updateSubtasks = (next: QuestSubtask[]) => setDraft((current) => ({ ...current, subtasks: next }));
+  const addSubtask = () => updateSubtasks([...subtasks, { id: createId("subtask"), title: "", completed: false, completedAt: null }]);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!draft.title.trim()) { setError("請輸入任務名稱。"); return; } onSubmit({ ...draft, title: draft.title.trim(), description: draft.description.trim() || "完成這段任務，為旅程累積一次進展。", dueDate: draft.dueDate || null, estimatedMinutes: draft.estimatedMinutes && draft.estimatedMinutes > 0 ? Math.round(draft.estimatedMinutes) : null, subtasks: subtasks.filter((subtask) => subtask.title.trim()).map((subtask) => ({ ...subtask, title: subtask.title.trim() })) }); }
 
-  useEffect(() => {
-    if (quest) {
-      setDraft({
-        title: quest.title,
-        description: quest.description,
-        type: quest.type === "map" ? "side" : quest.type,
-        category: quest.category,
-        occupation: quest.occupation,
-        difficulty: quest.difficulty
-      });
-    } else {
-      setDraft(initialDraft);
-    }
-    setError("");
-  }, [quest]);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!draft.title.trim()) {
-      setError("請輸入任務名稱。");
-      return;
-    }
-
-    onSubmit({
-      ...draft,
-      title: draft.title.trim(),
-      description: draft.description.trim() || "完成一個清楚、可行的小任務。"
-    });
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="game-card space-y-4 p-5">
-      <div>
-        <h2 className="text-xl font-black text-zinc-50">
-          {quest ? "編輯任務牌" : "新增任務牌"}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          把任務寫成可以完成的小行動，完成後會轉成 EXP 與技能點。
-        </p>
-      </div>
-
-      <label className="block space-y-2">
-        <span className="text-sm font-bold text-zinc-200">任務名稱</span>
-        <input
-          value={draft.title}
-          onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-          className="field-control"
-        />
-      </label>
-
-      <label className="block space-y-2">
-        <span className="text-sm font-bold text-zinc-200">任務描述</span>
-        <textarea
-          value={draft.description}
-          onChange={(event) =>
-            setDraft((current) => ({ ...current, description: event.target.value }))
-          }
-          className="field-control min-h-24 resize-y"
-        />
-      </label>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block space-y-2">
-          <span className="text-sm font-bold text-zinc-200">任務分類</span>
-          <select
-            value={draft.type}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, type: event.target.value as QuestType }))
-            }
-            className="field-control"
-          >
-            {questTypes.map((type) => (
-              <option key={type} value={type}>
-                {questTypeLabels[type]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-bold text-zinc-200">能力分類</span>
-          <select
-            value={draft.category}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                category: event.target.value as QuestCategory
-              }))
-            }
-            className="field-control"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {categoryLabels[category]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-bold text-zinc-200">難度</span>
-          <select
-            value={draft.difficulty}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                difficulty: event.target.value as QuestDifficulty
-              }))
-            }
-            className="field-control"
-          >
-            {difficulties.map((difficulty) => (
-              <option key={difficulty} value={difficulty}>
-                {difficultyLabels[difficulty]} · {getExpReward(difficulty)} EXP
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-2">
-          <span className="text-sm font-bold text-zinc-200">職業分類</span>
-          <select
-            value={draft.occupation}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                occupation: event.target.value as OccupationCategory
-              }))
-            }
-            className="field-control"
-          >
-            {occupationOptions.map((occupation) => (
-              <option key={occupation.value} value={occupation.value}>
-                {occupation.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 active:translate-y-px"
-        >
-          <FloppyDisk className="size-4" weight="bold" />
-          保存任務
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-bold text-zinc-200 transition hover:border-emerald-300/30 active:translate-y-px"
-        >
-          <X className="size-4" weight="bold" />
-          取消
-        </button>
-      </div>
-    </form>
-  );
+  return <form onSubmit={handleSubmit} className="game-card space-y-5 p-5"><div><h2 className="text-xl font-black text-zinc-50">{quest ? "編輯任務" : "新增任務"}</h2><p className="mt-1 text-sm text-zinc-400">安排截止日、工作量與子任務，讓大型目標更容易推進。</p></div>
+    <label className="block space-y-2"><span className="text-sm font-bold text-zinc-200">任務名稱</span><input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} className="field-control" /></label>
+    <label className="block space-y-2"><span className="text-sm font-bold text-zinc-200">任務說明</span><textarea value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} className="field-control min-h-24 resize-y" /></label>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Select label="任務類型" value={draft.type} onChange={(value) => setDraft((current) => ({ ...current, type: value as QuestType }))}>{questTypes.map((type) => <option key={type} value={type}>{questTypeLabels[type]}</option>)}</Select><Select label="成長類別" value={draft.category} onChange={(value) => setDraft((current) => ({ ...current, category: value as QuestCategory }))}>{categories.map((category) => <option key={category} value={category}>{categoryLabels[category]}</option>)}</Select><Select label="難度與 EXP" value={draft.difficulty} onChange={(value) => setDraft((current) => ({ ...current, difficulty: value as QuestDifficulty }))}>{difficulties.map((difficulty) => <option key={difficulty} value={difficulty}>{difficultyLabels[difficulty]} · {getExpReward(difficulty)} EXP</option>)}</Select><Select label="職業分類" value={draft.occupation} onChange={(value) => setDraft((current) => ({ ...current, occupation: value as OccupationCategory }))}>{occupationOptions.map((occupation) => <option key={occupation.value} value={occupation.value}>{occupation.label}</option>)}</Select></div>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Select label="優先程度" value={draft.priority ?? "normal"} onChange={(value) => setDraft((current) => ({ ...current, priority: value as QuestPriority }))}>{priorities.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</Select><label className="block space-y-2"><span className="text-sm font-bold text-zinc-200">截止日期</span><input type="date" value={draft.dueDate ?? ""} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value || null }))} className="field-control" /></label><label className="block space-y-2"><span className="text-sm font-bold text-zinc-200">預估時間（分鐘）</span><input type="number" min="1" value={draft.estimatedMinutes ?? ""} onChange={(event) => setDraft((current) => ({ ...current, estimatedMinutes: event.target.value ? Number(event.target.value) : null }))} className="field-control" /></label><Select label="重複週期" value={draft.recurrence ?? "none"} onChange={(value) => setDraft((current) => ({ ...current, recurrence: value as QuestRecurrence }))}>{recurrences.map((recurrence) => <option key={recurrence.value} value={recurrence.value}>{recurrence.label}</option>)}</Select></div>
+    <section className="rounded-lg border border-white/10 bg-zinc-950/35 p-4"><div className="flex items-center justify-between gap-3"><div><h3 className="font-black text-zinc-100">子任務</h3><p className="mt-1 text-sm text-zinc-400">將大型目標拆成可完成的小步驟。</p></div><button type="button" onClick={addSubtask} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-300/30 px-3 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-300/10"><Plus className="size-4" />新增</button></div><div className="mt-4 space-y-2">{subtasks.map((subtask) => <div key={subtask.id} className="flex gap-2"><button type="button" onClick={() => updateSubtasks(subtasks.map((item) => item.id === subtask.id ? { ...item, completed: !item.completed, completedAt: !item.completed ? new Date().toISOString() : null } : item))} aria-label={subtask.completed ? "標記未完成" : "標記完成"} className={`grid size-10 shrink-0 place-items-center rounded-lg border ${subtask.completed ? "border-emerald-300 bg-emerald-300 text-zinc-950" : "border-white/15 text-zinc-400"}`}>{subtask.completed ? <Check className="size-4" weight="bold" /> : null}</button><input value={subtask.title} onChange={(event) => updateSubtasks(subtasks.map((item) => item.id === subtask.id ? { ...item, title: event.target.value } : item))} className="field-control min-w-0" placeholder="子任務內容" /><button type="button" onClick={() => updateSubtasks(subtasks.filter((item) => item.id !== subtask.id))} aria-label="刪除子任務" className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/10 text-zinc-400 hover:border-red-300/40 hover:text-red-200"><Trash className="size-4" /></button></div>)}</div></section>
+    {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}<div className="flex flex-wrap gap-2"><button type="submit" className="inline-flex items-center gap-2 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 active:translate-y-px"><FloppyDisk className="size-4" weight="bold" />儲存任務</button><button type="button" onClick={onCancel} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm font-bold text-zinc-200 transition hover:border-emerald-300/30 active:translate-y-px"><X className="size-4" weight="bold" />取消</button></div></form>;
 }
+
+function Select({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) { return <label className="block space-y-2"><span className="text-sm font-bold text-zinc-200">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="field-control">{children}</select></label>; }

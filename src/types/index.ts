@@ -42,6 +42,17 @@ export type QuestDifficulty = "easy" | "normal" | "hard";
 
 export type QuestStatus = "pending" | "completed";
 
+export type QuestPriority = "low" | "normal" | "high";
+
+export type QuestRecurrence = "none" | "daily" | "weekly";
+
+export interface QuestSubtask {
+  id: string;
+  title: string;
+  completed: boolean;
+  completedAt: string | null;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -69,12 +80,18 @@ export interface Quest {
   status: QuestStatus;
   createdAt: string;
   completedAt: string | null;
+  priority: QuestPriority;
+  dueDate: string | null;
+  estimatedMinutes: number | null;
+  recurrence: QuestRecurrence;
+  subtasks: QuestSubtask[];
+  questChainId: string | null;
 }
 
 export type QuestDraft = Pick<
   Quest,
   "title" | "description" | "type" | "category" | "occupation" | "difficulty"
->;
+> & Partial<Pick<Quest, "priority" | "dueDate" | "estimatedMinutes" | "recurrence" | "subtasks" | "questChainId">>;
 
 export interface Stats {
   learning: number;
@@ -150,7 +167,7 @@ export interface UserSettings {
 }
 
 export interface LifeQuestState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;

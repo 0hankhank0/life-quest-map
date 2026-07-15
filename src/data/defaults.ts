@@ -106,7 +106,15 @@ export function createDemoQuests(now = new Date().toISOString()): Quest[] {
       createdAt: now,
       completedAt: null
     }
-  ];
+  ].map((quest) => ({
+    ...quest,
+    priority: "normal" as const,
+    dueDate: null,
+    estimatedMinutes: null,
+    recurrence: "none" as const,
+    subtasks: [],
+    questChainId: null
+  })) as Quest[];
 }
 
 export function createDefaultAchievements(): Achievement[] {
@@ -211,7 +219,7 @@ export const mapLocations: MapLocation[] = [
 
 export function createInitialLifeQuestState(): LifeQuestState {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     profile: null,
     quests: createDemoQuests(),
     stats: { ...defaultStats },
