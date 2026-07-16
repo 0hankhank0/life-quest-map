@@ -180,8 +180,50 @@ export interface UserSettings {
   notificationsEnabled: boolean;
 }
 
+export type QuoteCategory =
+  | "main-quest"
+  | "level-up"
+  | "skill-up"
+  | "streak"
+  | "achievement"
+  | "location";
+
+export interface AdventureQuote {
+  id: string;
+  text: string;
+  category: QuoteCategory;
+}
+
+export interface SavedQuote {
+  id: string;
+  quoteId: string;
+  text: string;
+  category: QuoteCategory;
+  savedAt: string;
+  sourceType?: string;
+  sourceId?: string;
+  sourceTitle?: string;
+  location?: {
+    name?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+}
+
+/** Ephemeral UI state. It deliberately is not persisted as a memory fragment yet. */
+export interface CompletionFeedback {
+  eventId: string;
+  quote: AdventureQuote;
+  sourceType: string;
+  sourceId?: string;
+  sourceTitle: string;
+  expReward?: number;
+  statLabel?: string;
+  location?: SavedQuote["location"];
+}
+
 export interface LifeQuestState {
-  schemaVersion: 4;
+  schemaVersion: 5;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
@@ -198,6 +240,7 @@ export interface LifeQuestState {
   streak: Streak;
   customMapLocations: MapLocation[];
   unlockedSkillNodeIds: string[];
+  savedQuotes: SavedQuote[];
   userSettings: UserSettings;
 }
 

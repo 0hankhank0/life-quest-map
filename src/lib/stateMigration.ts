@@ -9,12 +9,13 @@ import { getExpReward } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
 import { normalizeCustomMapLocation } from "@/lib/mapLocations";
-import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask } from "@/types";
+import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, SavedQuote } from "@/types";
 
 type StateRecord = Record<string, unknown>;
 type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
 
 const recommendationActions = new Set(["shown", "favorite", "saved", "dismissed", "completed"]);
+const quoteCategories = new Set(["main-quest", "level-up", "skill-up", "streak", "achievement", "location"]);
 const uniqueIds = (items: unknown): string[] =>
   Array.isArray(items) ? [...new Set(items.filter((item): item is string => typeof item === "string"))] : [];
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -30,6 +31,21 @@ function normalizeSubtasks(value: unknown): QuestSubtask[] {
 
 function normalizeCustomMapLocations(value: unknown): LifeQuestState["customMapLocations"] {
   return Array.isArray(value) ? value.map(normalizeCustomMapLocation).filter((location): location is LifeQuestState["customMapLocations"][number] => location !== null) : [];
+}
+
+function normalizeSavedQuotes(value: unknown): SavedQuote[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.filter(isRecord).flatMap((item) => {
+    if (typeof item.id !== "string" || !item.id || seen.has(item.id) || typeof item.quoteId !== "string" || typeof item.text !== "string" || typeof item.category !== "string" || !quoteCategories.has(item.category) || !isDateString(item.savedAt)) return [];
+    seen.add(item.id);
+    const location = isRecord(item.location) ? {
+      ...(typeof item.location.name === "string" ? { name: item.location.name } : {}),
+      ...(typeof item.location.latitude === "number" && Number.isFinite(item.location.latitude) ? { latitude: item.location.latitude } : {}),
+      ...(typeof item.location.longitude === "number" && Number.isFinite(item.location.longitude) ? { longitude: item.location.longitude } : {})
+    } : undefined;
+    return [{ id: item.id, quoteId: item.quoteId, text: item.text, category: item.category as SavedQuote["category"], savedAt: item.savedAt, sourceType: typeof item.sourceType === "string" ? item.sourceType : undefined, sourceId: typeof item.sourceId === "string" ? item.sourceId : undefined, sourceTitle: typeof item.sourceTitle === "string" ? item.sourceTitle : undefined, location: location && Object.keys(location).length ? location : undefined }];
+  });
 }
 
 /** Converts any persisted state-shaped object into the complete v2 schema. */
@@ -87,7 +103,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 4,
+    schemaVersion: 5,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },
@@ -104,6 +120,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     streak: sourceStreak,
     customMapLocations: normalizeCustomMapLocations(source.customMapLocations),
     unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds).filter((id) => skillNodeIds.has(id)),
+    savedQuotes: normalizeSavedQuotes(source.savedQuotes),
     userSettings: { ...defaultUserSettings, ...(isRecord(source.userSettings) && (source.userSettings.theme === "system" || source.userSettings.theme === "dark") ? { theme: source.userSettings.theme } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.reducedMotion === "boolean" ? { reducedMotion: source.userSettings.reducedMotion } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: source.userSettings.notificationsEnabled } : {}) }
   };
 }

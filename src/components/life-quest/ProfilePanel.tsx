@@ -12,6 +12,7 @@ import { AchievementBadge } from "@/components/AchievementBadge";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
 import { useToast } from "@/components/ToastProvider";
 import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
+import { AdventureJournal } from "@/components/life-quest/AdventureJournal";
 import { PageHeader } from "@/components/PageHeader";
 import { categoryLabels, occupationLabels, roleOptions, studentStageLabels } from "@/data/labels";
 import { getStrongestStat } from "@/lib/progression";
@@ -105,6 +106,8 @@ export function ProfilePanel() {
           開啟歷史
         </button>
       </section>
+
+      <AdventureJournal />
 
       {state.occupationSuggestions.length > 0 ? (
         <section className="game-card p-5">

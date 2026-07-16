@@ -4,16 +4,17 @@ import { importLifeQuestState, migrateLifeQuestState } from "@/lib/stateMigratio
 
 const now = new Date("2026-07-15T12:00:00");
 
-describe("v2 state migration", () => {
+describe("state migration", () => {
   it("migrates a v1 state and derives new progress fields", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
     expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: false, notificationsEnabled: false });
+    expect(migrated.savedQuotes).toEqual([]);
   });
 
   it("derives daily EXP when a v2 daily summary has no expEarned field", () => {
@@ -50,6 +51,16 @@ describe("v2 state migration", () => {
     const state = createInitialLifeQuestState();
     const migrated = migrateLifeQuestState({ ...state, unlockedSkillNodeIds: ["learning-1", "unknown-node", "learning-1"] }, now);
     expect(migrated.unlockedSkillNodeIds).toEqual(["learning-1"]);
+  });
+
+  it("keeps valid saved quotes and safely ignores malformed legacy entries", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, savedQuotes: [
+      { id: "quote-memory:quest-1", quoteId: "main-1", text: "測試語錄", category: "main-quest", savedAt: "2026-07-15T08:00:00.000Z", sourceTitle: "測試任務", location: { name: "台北", latitude: 25.03, longitude: 121.56 } },
+      { id: "bad", quoteId: 1 }
+    ] }, now);
+    expect(migrated.savedQuotes).toHaveLength(1);
+    expect(migrated.savedQuotes[0]).toMatchObject({ id: "quote-memory:quest-1", location: { name: "台北" } });
   });
 });
 
