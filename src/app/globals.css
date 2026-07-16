@@ -216,6 +216,22 @@ select option {
   background: #a3e635;
 }
 
+.life-marker-selected span {
+  transform: scale(1.18);
+  border-color: #fef08a;
+  box-shadow: 0 0 0 0.55rem rgb(250 204 21 / 0.28);
+}
+
+.life-marker-custom span { border-radius: 999px; }
+.life-marker-demo span::before { content: ""; position: absolute; right: -0.28rem; top: -0.28rem; width: 0.45rem; height: 0.45rem; border: 1px solid #03140f; border-radius: 999px; background: #fbbf24; }
+.life-marker-learning span { background: #6366f1; }
+.life-marker-fitness span { background: #f97316; }
+.life-marker-creativity span { background: #d946ef; }
+.life-marker-social span { background: #06b6d4; }
+.life-marker-discipline span { background: #eab308; }
+.life-marker-exploration span { background: #10b981; }
+.life-marker-draft span { background: #38bdf8; border-style: dashed; }
+
 .life-marker-current span {
   border-radius: 999px;
   background: #60a5fa;

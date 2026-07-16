@@ -1,0 +1,10 @@
+"use client";
+
+import { categoryLabels } from "@/data/labels";
+import { externalNavigationUrl } from "@/lib/mapLocations";
+import type { MapLocation } from "@/types";
+
+export function MapLocationDetails({ location, completed, onComplete, onEdit, onDelete }: { location: MapLocation | null; completed: boolean; onComplete: () => void; onEdit: () => void; onDelete: () => void }) {
+  if (!location) return <aside className="rounded-lg border border-zinc-700 bg-zinc-900/60 p-4 text-sm text-zinc-400" role="status">選取地圖標記或任務卡片以查看詳情。</aside>;
+  return <aside aria-label="地點詳情" className="rounded-lg border border-sky-300/30 bg-zinc-900/80 p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-bold text-sky-200">{location.isCustom ? "自訂據點" : "示範據點"} · {location.type}</p><h2 className="mt-1 text-lg font-black text-zinc-50">{location.name}</h2></div><span className="text-sm font-black text-emerald-200">{completed ? "已完成" : `${location.expReward} EXP`}</span></div><p className="mt-3 text-sm text-zinc-200">{location.questTitle}</p>{location.notes && <p className="mt-3 rounded bg-zinc-800 p-2 text-xs text-zinc-400">{location.notes}</p>}<p className="mt-3 text-xs text-zinc-400">{categoryLabels[location.category]} · {location.lat.toFixed(5)}, {location.lng.toFixed(5)}</p><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={onComplete} disabled={completed} className="min-h-11 rounded bg-emerald-600 px-3 py-2 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">{completed ? "已完成" : "標記完成"}</button><a href={externalNavigationUrl(location)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded bg-zinc-700 px-3 py-2 text-sm font-black text-zinc-100">開啟導航</a>{location.isCustom && <><button type="button" onClick={onEdit} className="min-h-11 rounded border border-zinc-500 px-3 py-2 text-sm font-black">編輯</button><button type="button" onClick={onDelete} className="min-h-11 rounded border border-red-400/60 px-3 py-2 text-sm font-black text-red-200">刪除</button></>}</div></aside>;
+}

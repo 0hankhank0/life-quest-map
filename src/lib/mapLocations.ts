@@ -44,3 +44,42 @@ export function formatDistance(kilometers: number): string {
   if (kilometers < 1) return `約 ${Math.max(1, Math.round(kilometers * 1000))} 公尺`;
   return `約 ${kilometers.toFixed(kilometers < 10 ? 1 : 0)} 公里`;
 }
+
+export type MapLocationFilter = "all" | "pending" | "completed" | "custom" | "hide-demo" | QuestCategory;
+
+/** The single filtering/sorting pipeline shared by the map markers and task cards. */
+export function getVisibleMapLocations(
+  locations: MapLocation[],
+  completions: string[],
+  filter: MapLocationFilter,
+  position: Coordinates | null
+): MapLocation[] {
+  const completionIds = new Set(completions);
+  const filtered = locations.filter((location) => {
+    const completed = completionIds.has(location.id);
+    if (filter === "all") return true;
+    if (filter === "pending") return !completed;
+    if (filter === "completed") return completed;
+    if (filter === "custom") return Boolean(location.isCustom);
+    if (filter === "hide-demo") return Boolean(location.isCustom);
+    return location.category === filter;
+  });
+  if (!position) return filtered;
+  return filtered
+    .map((location, index) => ({ location, index, distance: distanceInKilometers(position, location) }))
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .map(({ location }) => location);
+}
+
+export function externalNavigationUrl(location: Coordinates): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${location.lat},${location.lng}`)}`;
+}
+
+/** Guards the map click handler so normal viewing/dragging never creates a draft point. */
+export function selectedCoordinatesFromMapClick(selecting: boolean, coordinates: Coordinates): Coordinates | null {
+  return selecting ? normalizeCoordinates(coordinates) : null;
+}
+
+export function selectedLocationAfterDelete(selectedLocationId: string | null, deletedLocationId: string): string | null {
+  return selectedLocationId === deletedLocationId ? null : selectedLocationId;
+}
