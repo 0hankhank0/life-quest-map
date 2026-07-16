@@ -10,6 +10,11 @@ describe("map location helpers", () => {
     expect(normalizeCoordinates({ lat: "25", lng: 121 })).toBeNull();
   });
 
+  it("converts browser GeolocationCoordinates latitude and longitude to map coordinates", () => {
+    const browserCoordinates = { latitude: 25.03301234, longitude: 121.56549876 };
+    expect(normalizeCoordinates({ lat: browserCoordinates.latitude, lng: browserCoordinates.longitude })).toEqual({ lat: 25.033012, lng: 121.565499 });
+  });
+
   it("normalizes custom locations without keeping unknown fields", () => {
     expect(normalizeCustomMapLocation({ id: "park", name: " Park ", questTitle: " Walk ", type: "", notes: " note ", lat: 25, lng: 121, category: "fitness", expReward: 12.6, ignored: true })).toMatchObject({ id: "park", name: "Park", questTitle: "Walk", type: "自訂地點", notes: "note", isCustom: true, expReward: 13 });
   });

@@ -53,7 +53,41 @@ export function MapView() {
   const onMapSelect = useCallback((coordinates: Coordinates) => { const selectedCoordinates = selectedCoordinatesFromMapClick(selecting, coordinates); if (!selectedCoordinates) return; setDraftCoordinates(selectedCoordinates); setSelecting(false); }, [selecting]);
   const beginEdit = useCallback((location: MapLocation) => { setSelectedLocationId(location.id); setEditing(location); setDraftCoordinates({ lat: location.lat, lng: location.lng }); setForm({ name: location.name, questTitle: location.questTitle, type: location.type, category: location.category, notes: location.notes ?? "", expReward: location.expReward }); }, []);
   const saveLocation = useCallback(() => { if (!draftCoordinates || !form.name.trim() || !form.questTitle.trim()) return; const location: MapLocation = { id: editing?.id ?? createId("map-location"), ...draftCoordinates, name: form.name.trim(), questTitle: form.questTitle.trim(), type: form.type.trim() || "自訂探索點", category: form.category as QuestCategory, notes: form.notes.trim(), expReward: Math.max(0, Number(form.expReward) || 0), isCustom: true }; if (editing) updateCustomMapLocation(location); else addCustomMapLocation(location); setSelectedLocationId(location.id); setFocus(draftCoordinates); cancelDraft(); }, [addCustomMapLocation, cancelDraft, draftCoordinates, editing, form, updateCustomMapLocation]);
-  const locateMe = useCallback(() => { if (!navigator.geolocation) { setLocationMessage("此瀏覽器不支援定位。"); return; } setLocationMessage("正在取得目前位置…"); navigator.geolocation.getCurrentPosition((result) => { const normalized = normalizeCoordinates(result.coords); if (normalized) { setPosition(normalized); setFocus(normalized); setLocationMessage("已移動到目前位置，附近任務已依距離排序。"); } else setLocationMessage("定位座標無效。"); }, (error) => setLocationMessage(error.code === error.PERMISSION_DENIED ? "未授權定位；仍可瀏覽所有據點。" : "無法取得位置，請稍後再試。"), { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }); }, []);
+  const locateMe = useCallback(() => {
+    if (!window.isSecureContext && window.location.hostname !== "localhost") {
+      setLocationMessage("定位功能需要安全來源（HTTPS 或 localhost）。");
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationMessage("此瀏覽器不支援定位功能。");
+      return;
+    }
+    setLocationMessage("正在取得目前位置…");
+    navigator.geolocation.getCurrentPosition(
+      (result) => {
+        const normalized = normalizeCoordinates({
+          lat: result.coords.latitude,
+          lng: result.coords.longitude,
+        });
+        if (!normalized) {
+          setLocationMessage("定位座標無效。");
+          return;
+        }
+        setPosition(normalized);
+        setFocus(normalized);
+        setLocationMessage("定位成功，已移動到目前位置；附近任務已依距離排序。");
+      },
+      (error) => {
+        const messages: Record<number, string> = {
+          [error.PERMISSION_DENIED]: "你已拒絕定位權限；仍可瀏覽所有據點。",
+          [error.POSITION_UNAVAILABLE]: "定位服務目前無法取得位置，請稍後再試。",
+          [error.TIMEOUT]: "定位逾時，請確認網路與定位服務後再試。",
+        };
+        setLocationMessage(messages[error.code] ?? "無法取得位置，請稍後再試。");
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
   const removeSelected = useCallback(() => { if (!selectedLocation?.isCustom) return; deleteCustomMapLocation(selectedLocation.id); setSelectedLocationId((id) => selectedLocationAfterDelete(id, selectedLocation.id)); }, [deleteCustomMapLocation, selectedLocation]);
   return <div className="space-y-4"><MapToolbar filter={filter} selecting={selecting} onFilter={setFilter} onLocate={locateMe} onFitBounds={() => setFitRequest((value) => value + 1)} onStartAdd={startAdd} onCancelAdd={cancelDraft} />{locationMessage && <p className="text-sm text-amber-100" role="status">{locationMessage}</p>}<MapErrorBoundary><div className="overflow-hidden rounded-lg border border-emerald-300/20 bg-zinc-950"><MapContainer center={taiwanCenter} zoom={8} scrollWheelZoom className="h-[55dvh] min-h-[380px] w-full"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapClickHandler selecting={selecting} onSelect={onMapSelect} /><MapActions focus={focus} fitLocations={visibleLocations} requestFit={fitRequest} />{position && <Marker position={[position.lat, position.lng]} icon={currentIcon} />}{draftCoordinates && <Marker position={[draftCoordinates.lat, draftCoordinates.lng]} icon={draftIcon} interactive={false} />}{visibleLocations.map((location) => <Marker key={location.id} position={[location.lat, location.lng]} icon={markerIcon(location, state.mapCompletions.includes(location.id), selectedLocationId === location.id)} eventHandlers={{ click: () => selectLocation(location) }} />)}</MapContainer></div></MapErrorBoundary>{draftCoordinates && <MapLocationForm coordinates={draftCoordinates} editing={Boolean(editing)} value={form} onChange={setForm} onSave={saveLocation} onCancel={cancelDraft} />}<MapLocationDetails location={selectedLocation} completed={selectedLocation ? state.mapCompletions.includes(selectedLocation.id) : false} onComplete={() => selectedLocation && completeMapLocation(selectedLocation)} onEdit={() => selectedLocation && beginEdit(selectedLocation)} onDelete={removeSelected} /><MapLocationList locations={visibleLocations} completions={state.mapCompletions} position={position} selectedLocationId={selectedLocationId} onSelect={selectLocation} /></div>;
 }
