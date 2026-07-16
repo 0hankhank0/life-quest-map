@@ -24,11 +24,15 @@ test("core adventure journey", async ({ page }) => {
 
   // Select a map point, save a custom location, and export the local backup.
   await page.goto("/map");
-  await page.locator(".leaflet-container").click({ position: { x: 160, y: 160 } });
-  const locationForm = page.locator("section").filter({ has: page.locator("input") }).last();
-  await locationForm.locator("input").first().fill("E2E 探索點");
-  await locationForm.locator("input").nth(1).fill("探索測試");
-  await locationForm.locator("button.bg-emerald-600").click();
+  await page.getByRole("button", { name: "新增探索點" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "選點模式" })).toBeVisible();
+  const map = page.locator(".leaflet-container");
+  await expect(map).toBeVisible();
+  await map.click({ position: { x: 160, y: 160 } });
+  const locationForm = page.getByRole("heading", { name: "新增探索點" }).locator("xpath=ancestor::section");
+  await locationForm.getByLabel("名稱").fill("E2E 探索點");
+  await locationForm.getByLabel("任務內容").fill("探索測試");
+  await locationForm.getByRole("button", { name: "儲存" }).click();
   await expect(locationForm).toBeHidden();
 
   await page.goto("/profile");
