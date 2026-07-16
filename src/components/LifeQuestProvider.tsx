@@ -10,6 +10,7 @@ import { importLifeQuestState, migrateLifeQuestState } from "@/lib/stateMigratio
 import { unlockSkillNode as unlockSkillNodeOperation } from "@/lib/skillTree";
 import { createId } from "@/lib/utils";
 import type { GrowthFocus, LifeMomentMood, LifeStage, LifeQuestState, MapLocation, OccupationCategory, QuestDraft, Role, StudentStage } from "@/types";
+import { normalizeCustomMapLocation } from "@/lib/mapLocations";
 
 interface OnboardingInput {
   name: string;
@@ -39,6 +40,9 @@ interface LifeQuestContextValue {
   selectAdventure: (adventureId: string) => void;
   clearSelectedAdventure: () => void;
   completeMapLocation: (location: MapLocation) => void;
+  addCustomMapLocation: (location: MapLocation) => void;
+  updateCustomMapLocation: (location: MapLocation) => void;
+  deleteCustomMapLocation: (locationId: string) => void;
   unlockSkillNode: (nodeId: string) => boolean;
   resetAppData: () => void;
   restoreDemoData: () => void;
@@ -82,6 +86,15 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const selectAdventure = useCallback((id: string) => setState((current) => ({ ...current, selectedAdventureId: id })), [setState]);
   const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
   const completeMapLocation = useCallback((location: MapLocation) => setState((current) => completeMapLocationOperation(current, location)), [setState]);
+  const addCustomMapLocation = useCallback((location: MapLocation) => setState((current) => {
+    const normalized = normalizeCustomMapLocation(location);
+    return normalized && !current.customMapLocations.some((item) => item.id === normalized.id) ? { ...current, customMapLocations: [normalized, ...current.customMapLocations] } : current;
+  }), [setState]);
+  const updateCustomMapLocation = useCallback((location: MapLocation) => setState((current) => {
+    const normalized = normalizeCustomMapLocation(location);
+    return normalized ? { ...current, customMapLocations: current.customMapLocations.map((item) => item.id === normalized.id ? normalized : item) } : current;
+  }), [setState]);
+  const deleteCustomMapLocation = useCallback((locationId: string) => setState((current) => ({ ...current, customMapLocations: current.customMapLocations.filter((item) => item.id !== locationId), mapCompletions: current.mapCompletions.filter((id) => id !== locationId) })), [setState]);
   const unlockSkillNode = useCallback((nodeId: string) => {
     const result = unlockSkillNodeOperation(state, nodeId);
     if (result.success) setState(result.state);
@@ -96,7 +109,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
     setState(result.state);
     return { success: true, message: "資料已匯入並遷移至 schemaVersion 2。" };
   }, [setState]);
-  const value = useMemo(() => ({ state, isHydrated, onboard, addQuest: addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData }), [state, isHydrated, onboard, addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData]);
+  const value = useMemo(() => ({ state, isHydrated, onboard, addQuest: addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, addCustomMapLocation, updateCustomMapLocation, deleteCustomMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData }), [state, isHydrated, onboard, addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, addCustomMapLocation, updateCustomMapLocation, deleteCustomMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData]);
   return <LifeQuestContext.Provider value={value}>{children}</LifeQuestContext.Provider>;
 }
 

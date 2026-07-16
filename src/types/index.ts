@@ -157,6 +157,8 @@ export interface MapLocation {
   questTitle: string;
   category: QuestCategory;
   expReward: number;
+  notes?: string;
+  isCustom?: boolean;
 }
 
 export interface DailyProgress {

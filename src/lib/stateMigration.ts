@@ -8,6 +8,7 @@ import { buildStreakFromCompletionDates } from "@/lib/dailyProgress";
 import { getExpReward } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
+import { normalizeCustomMapLocation } from "@/lib/mapLocations";
 import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask } from "@/types";
 
 type StateRecord = Record<string, unknown>;
@@ -28,12 +29,7 @@ function normalizeSubtasks(value: unknown): QuestSubtask[] {
 }
 
 function normalizeCustomMapLocations(value: unknown): LifeQuestState["customMapLocations"] {
-  return Array.isArray(value)
-    ? value.filter((location): location is LifeQuestState["customMapLocations"][number] =>
-        isRecord(location) && typeof location.id === "string" && typeof location.name === "string" &&
-        typeof location.type === "string" && typeof location.lat === "number" && typeof location.lng === "number" &&
-        typeof location.questTitle === "string" && typeof location.category === "string" && typeof location.expReward === "number")
-    : [];
+  return Array.isArray(value) ? value.map(normalizeCustomMapLocation).filter((location): location is LifeQuestState["customMapLocations"][number] => location !== null) : [];
 }
 
 /** Converts any persisted state-shaped object into the complete v2 schema. */

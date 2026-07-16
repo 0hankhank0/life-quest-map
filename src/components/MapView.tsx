@@ -1,85 +1,39 @@
 "use client";
 
 import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
-import { categoryLabels } from "@/data/labels";
+import { Component, useEffect, useMemo, useState, type ReactNode } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { categoryLabels, focusOptions } from "@/data/labels";
 import { mapLocations } from "@/data/defaults";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
+import { distanceInKilometers, formatDistance, normalizeCoordinates } from "@/lib/mapLocations";
+import { createId } from "@/lib/utils";
+import type { MapLocation, QuestCategory } from "@/types";
 
-const questIcon = L.divIcon({
-  className: "life-marker",
-  html: "<span></span>",
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -14]
-});
+const questIcon = L.divIcon({ className: "life-marker", html: "<span></span>", iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
+const completedIcon = L.divIcon({ className: "life-marker life-marker-completed", html: "<span></span>", iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -14] });
+const currentIcon = L.divIcon({ className: "life-marker life-marker-current", html: "<span></span>", iconSize: [28, 28], iconAnchor: [14, 14] });
+type Filter = "all" | "pending" | "completed" | "custom" | QuestCategory;
 
-const completedIcon = L.divIcon({
-  className: "life-marker life-marker-completed",
-  html: "<span></span>",
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
-  popupAnchor: [0, -14]
-});
+class MapErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <div className="grid h-[62dvh] min-h-[430px] place-items-center rounded-lg border border-amber-300/30 bg-zinc-950 p-6 text-center text-amber-100">地圖暫時無法載入，其他資料仍可正常使用。請重新整理後再試。</div> : this.props.children; }
+}
+function MapClickHandler({ onSelect }: { onSelect: (lat: number, lng: number) => void }) { useMapEvents({ click: (event) => onSelect(event.latlng.lat, event.latlng.lng) }); return null; }
+function FlyTo({ position }: { position: [number, number] | null }) { const map = useMap(); useEffect(() => { if (position) map.flyTo(position, Math.max(map.getZoom(), 14)); }, [map, position]); return null; }
 
 export function MapView() {
-  const { state, completeMapLocation } = useLifeQuest();
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-emerald-300/20 bg-zinc-950 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-      <MapContainer
-        center={[25.039, 121.545]}
-        zoom={13}
-        scrollWheelZoom
-        className="h-[62dvh] min-h-[430px] w-full"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {mapLocations.map((location) => {
-          const isCompleted = state.mapCompletions.includes(location.id);
-
-          return (
-            <Marker
-              key={location.id}
-              position={[location.lat, location.lng]}
-              icon={isCompleted ? completedIcon : questIcon}
-            >
-              <Popup>
-                <div className="w-56 space-y-3 text-zinc-900">
-                  <div>
-                    <p className="text-xs font-bold text-emerald-700">{location.type}</p>
-                    <h3 className="text-lg font-black">{location.name}</h3>
-                  </div>
-                  <div className="rounded-md bg-emerald-50 p-3">
-                    <p className="text-xs font-bold text-zinc-600">推薦任務</p>
-                    <p className="mt-1 font-bold">{location.questTitle}</p>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{categoryLabels[location.category]}</span>
-                    <span className="font-black text-emerald-700">
-                      {location.expReward} EXP
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => completeMapLocation(location)}
-                    disabled={isCompleted}
-                    className={`w-full rounded-md px-3 py-2 text-sm font-black transition ${
-                      isCompleted
-                        ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                        : "bg-emerald-600 text-white hover:bg-emerald-700"
-                    }`}
-                  >
-                    {isCompleted ? "已完成探索" : "完成地圖任務"}
-                  </button>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
-    </div>
-  );
+  const { state, completeMapLocation, addCustomMapLocation, updateCustomMapLocation, deleteCustomMapLocation } = useLifeQuest();
+  const [filter, setFilter] = useState<Filter>("all"); const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null); const [locationMessage, setLocationMessage] = useState("");
+  const [selected, setSelected] = useState<{ lat: number; lng: number } | null>(null); const [editing, setEditing] = useState<MapLocation | null>(null);
+  const [form, setForm] = useState({ name: "", questTitle: "", type: "自訂地點", category: "exploration" as QuestCategory, notes: "", expReward: 30 });
+  const allLocations = useMemo(() => [...mapLocations, ...state.customMapLocations], [state.customMapLocations]);
+  const visibleLocations = allLocations.filter((location) => { const completed = state.mapCompletions.includes(location.id); return filter === "all" || (filter === "pending" && !completed) || (filter === "completed" && completed) || (filter === "custom" && location.isCustom) || location.category === filter; });
+  const beginAdd = (lat: number, lng: number) => { setSelected({ lat, lng }); setEditing(null); setForm({ name: "", questTitle: "", type: "自訂地點", category: "exploration", notes: "", expReward: 30 }); };
+  const beginEdit = (location: MapLocation) => { setSelected({ lat: location.lat, lng: location.lng }); setEditing(location); setForm({ name: location.name, questTitle: location.questTitle, type: location.type, category: location.category, notes: location.notes ?? "", expReward: location.expReward }); };
+  const saveLocation = () => { if (!selected || !form.name.trim() || !form.questTitle.trim()) return; const location: MapLocation = { id: editing?.id ?? createId("map-location"), ...selected, name: form.name.trim(), questTitle: form.questTitle.trim(), type: form.type.trim() || "自訂地點", category: form.category, notes: form.notes.trim(), expReward: Math.max(0, Number(form.expReward) || 0), isCustom: true }; if (editing) updateCustomMapLocation(location); else addCustomMapLocation(location); setSelected(null); setEditing(null); };
+  const locateMe = () => { if (!navigator.geolocation) { setLocationMessage("此瀏覽器不支援定位功能。你仍可直接點擊地圖新增探索點。"); return; } setLocationMessage("正在取得目前位置…"); navigator.geolocation.getCurrentPosition((result) => { const normalized = normalizeCoordinates(result.coords); if (normalized) { setPosition(normalized); setLocationMessage("已定位到目前位置；位置只用於這次瀏覽，不會儲存或追蹤。"); } else setLocationMessage("取得的位置資料無效，請再試一次。"); }, (error) => setLocationMessage(error.code === error.PERMISSION_DENIED ? "你拒絕了定位權限；不影響使用地圖，可直接點擊地圖選點。" : "目前無法取得位置，請確認網路與定位服務後再試。"), { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }); };
+  const filters: Array<{ value: Filter; label: string }> = [{ value: "all", label: "全部" }, { value: "pending", label: "未探索" }, { value: "completed", label: "已探索" }, { value: "custom", label: "自訂地點" }, ...focusOptions.map((item) => ({ value: item.value, label: item.label }))];
+  return <div className="space-y-4"><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={locateMe} className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700">定位到我</button><span className="text-xs text-zinc-400">只在點擊後定位，不會在背景追蹤或儲存位置。</span>{locationMessage && <p className="w-full text-sm text-amber-100" role="status">{locationMessage}</p>}</div><div className="flex flex-wrap gap-2" aria-label="探索點篩選">{filters.map((item) => <button type="button" key={item.value} onClick={() => setFilter(item.value)} className={`rounded-full px-3 py-1.5 text-xs font-bold ${filter === item.value ? "bg-emerald-300 text-zinc-950" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}>{item.label}</button>)}</div><MapErrorBoundary><div className="overflow-hidden rounded-lg border border-emerald-300/20 bg-zinc-950"><MapContainer center={[23.7, 120.96]} zoom={8} scrollWheelZoom className="h-[62dvh] min-h-[430px] w-full"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapClickHandler onSelect={beginAdd} /><FlyTo position={position ? [position.lat, position.lng] : null} />{position && <Marker position={[position.lat, position.lng]} icon={currentIcon}><Popup>目前位置（僅本次瀏覽使用）</Popup></Marker>}{visibleLocations.map((location) => { const isCompleted = state.mapCompletions.includes(location.id); const distance = position ? formatDistance(distanceInKilometers(position, location)) : null; return <Marker key={location.id} position={[location.lat, location.lng]} icon={isCompleted ? completedIcon : questIcon}><Popup><div className="w-60 space-y-3 text-zinc-900"><div><p className="text-xs font-bold text-emerald-700">{location.type}</p><h3 className="text-lg font-black">{location.name}</h3></div><p className="text-sm">{location.questTitle}</p>{location.notes && <p className="rounded bg-zinc-100 p-2 text-xs text-zinc-600">備註：{location.notes}</p>}<div className="flex items-center justify-between text-sm"><span>{categoryLabels[location.category]}</span><span className="font-black text-emerald-700">{location.expReward} EXP</span></div>{distance && <p className="text-xs font-bold text-zinc-600">距離目前位置 {distance}</p>}<button type="button" onClick={() => completeMapLocation(location)} disabled={isCompleted} className={`w-full rounded-md px-3 py-2 text-sm font-black ${isCompleted ? "cursor-not-allowed bg-zinc-200 text-zinc-500" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}>{isCompleted ? "已完成探索" : "標記完成"}</button>{location.isCustom && <div className="flex gap-2"><button type="button" onClick={() => beginEdit(location)} className="flex-1 rounded border border-zinc-300 px-2 py-1 text-xs font-bold">編輯</button><button type="button" onClick={() => deleteCustomMapLocation(location.id)} className="flex-1 rounded border border-red-200 px-2 py-1 text-xs font-bold text-red-700">刪除</button></div>}</div></Popup></Marker>; })}</MapContainer></div></MapErrorBoundary>{selected && <section className="rounded-lg border border-emerald-300/20 bg-zinc-900/70 p-4"><div className="mb-3 flex items-center justify-between"><h2 className="font-black text-zinc-50">{editing ? "編輯自訂探索點" : "新增自訂探索點"}</h2><span className="text-xs text-zinc-400">{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</span></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm">名稱<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50" /></label><label className="text-sm">任務內容<input value={form.questTitle} onChange={(event) => setForm({ ...form, questTitle: event.target.value })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50" /></label><label className="text-sm">類別<select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value as QuestCategory })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50">{focusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="text-sm">EXP<input type="number" min="0" value={form.expReward} onChange={(event) => setForm({ ...form, expReward: Number(event.target.value) })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50" /></label><label className="text-sm sm:col-span-2">類型<input value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50" /></label><label className="text-sm sm:col-span-2">備註<textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} className="mt-1 w-full rounded bg-zinc-800 p-2 text-zinc-50" rows={2} /></label></div><div className="mt-4 flex gap-2"><button type="button" onClick={saveLocation} disabled={!form.name.trim() || !form.questTitle.trim()} className="rounded bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">儲存探索點</button><button type="button" onClick={() => { setSelected(null); setEditing(null); }} className="rounded bg-zinc-700 px-4 py-2 text-sm font-black text-zinc-100">取消</button></div></section>}</div>;
 }

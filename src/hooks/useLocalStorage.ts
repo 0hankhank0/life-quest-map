@@ -31,7 +31,12 @@ export function useLocalStorage<T>(
       return;
     }
 
-    window.localStorage.setItem(key, JSON.stringify(value));
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Storage can be unavailable (private browsing, quota, security policy).
+      // Keep the in-memory session usable instead of failing the page.
+    }
   }, [isHydrated, key, value]);
 
   return [value, setValue, isHydrated];
