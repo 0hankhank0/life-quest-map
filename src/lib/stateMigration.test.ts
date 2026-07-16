@@ -45,6 +45,12 @@ describe("v2 state migration", () => {
     const migrated = migrateLifeQuestState({ ...state, lifeMoments: [{ id: "legacy", adventureName: "Walk", note: "nice", mood: "happier", completedAt: "2026-07-14T08:00:00.000Z" }] }, now);
     expect(migrated.lifeMoments).toEqual([{ id: "legacy", adventureName: "Walk", note: "nice", mood: "happier", completedAt: "2026-07-14T08:00:00.000Z", adventureId: undefined, rewardGranted: undefined }]);
   });
+
+  it("removes unknown skill node IDs while preserving known IDs", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, unlockedSkillNodeIds: ["learning-1", "unknown-node", "learning-1"] }, now);
+    expect(migrated.unlockedSkillNodeIds).toEqual(["learning-1"]);
+  });
 });
 
 describe("state import", () => {

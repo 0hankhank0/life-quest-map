@@ -102,6 +102,18 @@ export interface Stats {
   exploration: number;
 }
 
+export interface SkillNode {
+  id: string;
+  category: QuestCategory;
+  title: string;
+  description: string;
+  requiredStat: number;
+  requiredQuestCount: number;
+  prerequisiteIds: string[];
+  rewardTitle: string;
+  rewardDescription: string;
+}
+
 export interface Achievement {
   id: string;
   title: string;

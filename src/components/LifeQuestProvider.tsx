@@ -7,6 +7,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { appendRecommendationHistory, toggleUniqueId } from "@/lib/adventurePreferences";
 import { addQuest, addQuestPack, completeMapLocation as completeMapLocationOperation, completeMicroAdventure as completeMicroAdventureOperation, completeQuest as completeQuestOperation, deleteQuest as deleteQuestOperation, updateQuest as updateQuestOperation } from "@/lib/questOperations";
 import { importLifeQuestState, migrateLifeQuestState } from "@/lib/stateMigration";
+import { unlockSkillNode as unlockSkillNodeOperation } from "@/lib/skillTree";
 import { createId } from "@/lib/utils";
 import type { GrowthFocus, LifeMomentMood, LifeStage, LifeQuestState, MapLocation, OccupationCategory, QuestDraft, Role, StudentStage } from "@/types";
 
@@ -38,6 +39,7 @@ interface LifeQuestContextValue {
   selectAdventure: (adventureId: string) => void;
   clearSelectedAdventure: () => void;
   completeMapLocation: (location: MapLocation) => void;
+  unlockSkillNode: (nodeId: string) => boolean;
   resetAppData: () => void;
   restoreDemoData: () => void;
   exportData: () => string;
@@ -80,6 +82,11 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const selectAdventure = useCallback((id: string) => setState((current) => ({ ...current, selectedAdventureId: id })), [setState]);
   const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
   const completeMapLocation = useCallback((location: MapLocation) => setState((current) => completeMapLocationOperation(current, location)), [setState]);
+  const unlockSkillNode = useCallback((nodeId: string) => {
+    const result = unlockSkillNodeOperation(state, nodeId);
+    if (result.success) setState(result.state);
+    return result.success;
+  }, [setState, state]);
   const resetAppData = useCallback(() => setState(createInitialLifeQuestState()), [setState]);
   const restoreDemoData = useCallback(() => setState((current) => ({ ...createInitialLifeQuestState(), profile: current.profile ? { ...current.profile, exp: 0, level: 1 } : null, quests: createDemoQuests(), stats: { ...defaultStats }, achievements: createDefaultAchievements(), occupationSuggestions: current.occupationSuggestions })), [setState]);
   const exportData = useCallback(() => JSON.stringify(state, null, 2), [state]);
@@ -89,7 +96,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
     setState(result.state);
     return { success: true, message: "資料已匯入並遷移至 schemaVersion 2。" };
   }, [setState]);
-  const value = useMemo(() => ({ state, isHydrated, onboard, addQuest: addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, resetAppData, restoreDemoData, exportData, importData }), [state, isHydrated, onboard, addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, resetAppData, restoreDemoData, exportData, importData]);
+  const value = useMemo(() => ({ state, isHydrated, onboard, addQuest: addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData }), [state, isHydrated, onboard, addQuestCallback, addOccupationQuestPack, updateQuest, deleteQuest, completeQuest, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, selectAdventure, clearSelectedAdventure, completeMapLocation, unlockSkillNode, resetAppData, restoreDemoData, exportData, importData]);
   return <LifeQuestContext.Provider value={value}>{children}</LifeQuestContext.Provider>;
 }
 

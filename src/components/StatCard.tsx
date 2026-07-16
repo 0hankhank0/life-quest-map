@@ -27,9 +27,10 @@ interface StatCardProps {
   category: QuestCategory;
   value: number;
   compact?: boolean;
+  skillSummary?: { unlocked: number; available: number; total: number };
 }
 
-export function StatCard({ category, value, compact = false }: StatCardProps) {
+export function StatCard({ category, value, compact = false, skillSummary }: StatCardProps) {
   const Icon = statIcons[category];
   const rank = getStatRank(value);
   const progress = getStatProgress(value);
@@ -60,6 +61,11 @@ export function StatCard({ category, value, compact = false }: StatCardProps) {
           style={{ width: `${progress}%` }}
         />
       </div>
+      {skillSummary ? (
+        <p className="text-xs text-zinc-400">
+          技能節點：{skillSummary.unlocked} 已解鎖 · {skillSummary.available} 可解鎖 · 共 {skillSummary.total}
+        </p>
+      ) : null}
     </article>
   );
 }

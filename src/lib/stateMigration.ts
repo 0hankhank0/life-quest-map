@@ -7,6 +7,7 @@ import {
 import { buildStreakFromCompletionDates } from "@/lib/dailyProgress";
 import { getExpReward } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
+import { skillNodeIds } from "@/data/skillNodes";
 import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask } from "@/types";
 
 type StateRecord = Record<string, unknown>;
@@ -106,7 +107,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     dailyProgress: { date: nowKey, completedQuestIds: storedDailyIds ?? derivedTodayIds, expEarned: storedDailyExp },
     streak: sourceStreak,
     customMapLocations: normalizeCustomMapLocations(source.customMapLocations),
-    unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds),
+    unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds).filter((id) => skillNodeIds.has(id)),
     userSettings: { ...defaultUserSettings, ...(isRecord(source.userSettings) && (source.userSettings.theme === "system" || source.userSettings.theme === "dark") ? { theme: source.userSettings.theme } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.reducedMotion === "boolean" ? { reducedMotion: source.userSettings.reducedMotion } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: source.userSettings.notificationsEnabled } : {}) }
   };
 }
