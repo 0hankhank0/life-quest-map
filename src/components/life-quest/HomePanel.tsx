@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { BookmarkSimple, CalendarCheck, CheckCircle, Clock, Fire, Heart, Lightning, Prohibit, Shuffle, Sparkle } from "@phosphor-icons/react";
 import { ExpBar } from "@/components/ExpBar";
@@ -8,7 +8,7 @@ import { useLifeQuest } from "@/components/LifeQuestProvider";
 import { LifeMomentForm } from "@/components/life-quest/LifeMomentForm";
 import { microAdventures, type AvailableTime, type Mood } from "@/data/microAdventures";
 import { formatLocalShortDate, getRecentCompletedQuests, getTodayActivity, getWeekActivity } from "@/lib/activityStats";
-import { getNextDisplayedAdventureId, resolveDisplayedAdventure } from "@/lib/displayedAdventure";
+import { getNextDisplayedAdventureId, shouldRecordShown } from "@/lib/displayedAdventure";
 import { getAdventureRecommendations } from "@/lib/recommendations";
 import { calendarDateKey } from "@/lib/utils";
 
@@ -34,6 +34,7 @@ export function HomePanel() {
   const [mood, setMood] = useState<Mood>("bored");
   const [time, setTime] = useState<AvailableTime>("15");
   const [displayedAdventureId, setDisplayedAdventureId] = useState<string | null>(null);
+  const lastShownAdventureId = useRef<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const today = useMemo(() => getTodayActivity(state.quests), [state.quests]);
   const week = useMemo(() => getWeekActivity(state.quests), [state.quests]);
@@ -45,11 +46,27 @@ export function HomePanel() {
   const recommendationContext = useMemo(() => ({ focuses: state.profile?.focuses, occupation: state.profile?.occupation, favoriteAdventureIds: state.favoriteAdventureIds, savedAdventureIds: state.savedAdventureIds, dismissedAdventures: state.dismissedAdventures, recentlyShownIds, recentlyShownCategories, completedTodayIds }), [completedTodayIds, recentlyShownCategories, recentlyShownIds, state.dismissedAdventures, state.favoriteAdventureIds, state.profile?.focuses, state.profile?.occupation, state.savedAdventureIds]);
   const recommendations = useMemo(() => getAdventureRecommendations(microAdventures, { ...recommendationContext, mood, time }), [mood, recommendationContext, time]);
   const selectedAdventure = state.selectedAdventureId ? recommendations.find((item) => item.adventure.id === state.selectedAdventureId) : undefined;
-  const displayedRecommendation = selectedAdventure ?? resolveDisplayedAdventure(recommendations, displayedAdventureId);
+  const displayedRecommendation = selectedAdventure ?? (displayedAdventureId ? recommendations.find((item) => item.adventure.id === displayedAdventureId) : undefined);
   const adventure = displayedRecommendation?.adventure;
 
-  useEffect(() => { if (state.selectedAdventureId && selectedAdventure) { setDisplayedAdventureId(selectedAdventure.adventure.id); clearSelectedAdventure(); } }, [clearSelectedAdventure, selectedAdventure, state.selectedAdventureId]);
-  useEffect(() => { if (adventure) showAdventure(adventure.id); }, [adventure, showAdventure]);
+  useEffect(() => {
+    if (state.selectedAdventureId && selectedAdventure) {
+      setDisplayedAdventureId(selectedAdventure.adventure.id);
+      clearSelectedAdventure();
+      return;
+    }
+
+    if (!displayedAdventureId && recommendations[0]) {
+      setDisplayedAdventureId(recommendations[0].adventure.id);
+    }
+  }, [clearSelectedAdventure, displayedAdventureId, recommendations, selectedAdventure, state.selectedAdventureId]);
+
+  useEffect(() => {
+    if (displayedAdventureId && shouldRecordShown(lastShownAdventureId.current, displayedAdventureId)) {
+      lastShownAdventureId.current = displayedAdventureId;
+      showAdventure(displayedAdventureId);
+    }
+  }, [displayedAdventureId, showAdventure]);
   if (!state.profile || !adventure || !displayedRecommendation) return null;
 
   const completed = completedTodayIds.includes(adventure.id);

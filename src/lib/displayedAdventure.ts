@@ -15,3 +15,8 @@ export function getNextDisplayedAdventureId(
   return recommendations.find((item) => item.adventure.id !== displayedAdventureId)?.adventure.id
     ?? recommendations[0].adventure.id;
 }
+
+/** A shown record is only needed when the visible card actually changes. */
+export function shouldRecordShown(lastShownAdventureId: string | null, displayedAdventureId: string | null): boolean {
+  return displayedAdventureId !== null && displayedAdventureId !== lastShownAdventureId;
+}
