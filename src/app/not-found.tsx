@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <main className="grid min-h-dvh place-items-center p-6"><section className="game-card max-w-md p-7 text-center"><p className="font-bold text-emerald-200">404</p><h1 className="mt-2 text-3xl font-black text-zinc-50">找不到這片地圖</h1><p className="mt-3 text-sm leading-6 text-zinc-400">這個冒險入口不存在，回到主地圖繼續旅程。</p><Link href="/" className="mt-5 inline-flex rounded-lg bg-emerald-300 px-4 py-3 font-bold text-zinc-950">返回首頁</Link></section></main>; }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { BookmarkSimple, CalendarCheck, CheckCircle, Clock, Fire, Heart, Lightning, Prohibit, Shuffle, Sparkle } from "@phosphor-icons/react";
-import type { AppTab } from "@/components/BottomNav";
 import { ExpBar } from "@/components/ExpBar";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
 import { LifeMomentForm } from "@/components/life-quest/LifeMomentForm";
@@ -27,7 +27,9 @@ function RecommendationReasons({ reasons }: { reasons: string[] }) {
   return reasons.length ? <ul className="mt-4 flex flex-wrap gap-2" aria-label="推薦原因">{reasons.map((reason) => <li key={reason} className="rounded-md bg-emerald-200/10 px-2.5 py-1 text-xs text-emerald-100">{reason}</li>)}</ul> : null;
 }
 
-export function HomePanel({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
+export function HomePanel() {
+  const router = useRouter();
+  const onNavigate = (tab: "profile" | "quests") => router.push(tab === "profile" ? "/history" : "/quests");
   const { state, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, clearSelectedAdventure } = useLifeQuest();
   const [mood, setMood] = useState<Mood>("bored");
   const [time, setTime] = useState<AvailableTime>("15");

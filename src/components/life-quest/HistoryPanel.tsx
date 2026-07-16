@@ -5,7 +5,7 @@ import { categoryLabels } from "@/data/labels";
 import { formatLocalShortDate, getCategoryActivity, getRecentDayActivity, getRecentLifeMoments, getWeekActivity } from "@/lib/activityStats";
 import type { LifeQuestState } from "@/types";
 
-export function HistoryPanel({ state, onBack }: { state: LifeQuestState; onBack: () => void }) {
+export function HistoryPanel({ state, onBack = () => window.history.back() }: { state: LifeQuestState; onBack?: () => void }) {
   const heatmap = getRecentDayActivity(state.quests);
   const week = getWeekActivity(state.quests);
   const categories = getCategoryActivity(state.quests);

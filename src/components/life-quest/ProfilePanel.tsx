@@ -10,6 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
+import { useToast } from "@/components/ToastProvider";
 import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { categoryLabels, occupationLabels, roleOptions, studentStageLabels } from "@/data/labels";
@@ -18,6 +19,7 @@ import { calendarDateKey } from "@/lib/utils";
 
 export function ProfilePanel() {
   const { state, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
+  const { showToast } = useToast();
   const profile = state.profile;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [dataMessage, setDataMessage] = useState("");
@@ -153,6 +155,7 @@ export function ProfilePanel() {
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <button
             type="button"
+            data-testid="export-data"
             onClick={() => {
               const blob = new Blob([exportData()], { type: "application/json" });
               const url = URL.createObjectURL(blob);
@@ -161,6 +164,7 @@ export function ProfilePanel() {
               anchor.download = `life-quest-map-${calendarDateKey()}.json`;
               anchor.click();
               URL.revokeObjectURL(url);
+              showToast("資料已匯出，可安全備份。", "success");
               setDataMessage("已匯出目前資料。");
             }}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-sm font-bold text-zinc-100 transition hover:border-emerald-300/30 active:translate-y-px"

@@ -1,43 +1,39 @@
-# Life Quest Map
+# Life Quest Map v0.2
 
-## Data schema and migration
+一個以深色 emerald RPG 視覺呈現的個人生活任務、微冒險與探索地圖工具。
 
-Life Quest Map persists its local state under the existing `lifeQuestMap:v0.1` LocalStorage key. The key is intentionally retained so existing browser data is discovered automatically; the payload itself now declares `schemaVersion: 2`.
+## 功能
 
-When the app starts or a JSON backup is imported, it migrates data field by field. Missing v2 fields receive safe defaults, while valid quests, profile data, life moments, and preferences are retained even when an unrelated field is invalid. Legacy `lifeMoments` without `adventureId` or `rewardGranted` remain supported.
+- 路由式首頁、任務、地圖、技能、歷史與個人檔案
+- 微冒險推薦、任務規劃、EXP／技能／成就與連續完成紀錄
+- Leaflet 探索地圖、自訂地點、主動定位與距離提示
+- JSON 本機匯出／匯入、PWA App shell、離線狀態提示
 
-Version 2 adds daily completion summaries, streaks, custom map locations, unlocked skill-node IDs, and user settings. Invalid JSON or a JSON value that is not an object is rejected during import without replacing the current data.
+## 架構
 
-## 微冒險偏好
+Next.js App Router + React + TypeScript + Tailwind CSS。互動狀態由 `LifeQuestProvider` 管理，資料只存於瀏覽器 LocalStorage；地圖使用 Leaflet 與 OpenStreetMap。
 
-- 可以收藏提案、加入「稍後再做」，或標示「不適合我」。
-- 首頁會依心情、可用時間、成長方向與近期操作提供簡短推薦原因，並降低短期重複出現的提案。
-- 收藏、稍後清單、略過紀錄與推薦歷史都只保存在瀏覽器 LocalStorage；不會傳送給第三方。
+## 資料隱私
 
-以 RPG 任務感協助你記錄生活的小型 Web App。選擇現在的心情與可用時間，首頁會依成長重點與職業偏好推薦一個可立即開始的微冒險。
+沒有後端帳號、分析追蹤或伺服器資料庫。定位只在使用者點擊後取得，僅保留於當次頁面記憶體，不會保存或背景追蹤。請定期使用個人檔案頁的匯出功能備份 JSON。
 
-## 本次內容
-
-- 60 個微冒險，涵蓋學習、體能、創意、社交、探索與自律。
-- 每個冒險都有唯一 ID、心情、時間、分類與職業標記；推薦採心情＋時間＋個人偏好的固定排序，無符合項時仍有完整 fallback。
-- 48 則反思引言：18 則原創、18 則公共領域文本（含文學）、12 則標示清楚的原創轉述。
-- 引言來源、授權判斷與維護規則見 [docs/QUOTE_SOURCES.md](docs/QUOTE_SOURCES.md)。
-- 所有個人進度仍只保存在瀏覽器 LocalStorage；本專案不呼叫 Quote、影視、音樂或任何需 API key 的服務。
-
-## 技術
-
-Next.js 15、React 19、TypeScript、Tailwind CSS 4、Leaflet、Phosphor Icons。
-
-## 開發
+## 開發與測試
 
 ```bash
-npm.cmd install
-npm.cmd run dev
+npm install
+npm run dev
+npm run validate-data
+npm test -- --run
+npm run lint
+npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-## 驗證
+## v1 到 v0.2 資料遷移
 
-```bash
-npm.cmd run lint
-npm.cmd run build
-```
+應用程式維持 `lifeQuestMap:v0.1` LocalStorage key，啟動與匯入時會以欄位為單位正規化舊資料。缺少的新欄位會補安全預設值，已存在的有效任務、角色、完成紀錄、偏好與自訂地點會被保留；無效的單一欄位不會使整份資料失效。
+
+## 專案截圖
+
+_在此放置首頁、任務、公會地圖與個人檔案截圖。_

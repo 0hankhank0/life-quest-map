@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
+import { AppProviders } from "@/components/AppProviders";
 
 export const metadata: Metadata = {
   title: "Life Quest Map 人生任務地圖",
@@ -35,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="zh-Hant">
       <body>
-        {children}
+        <AppProviders>{children}</AppProviders>
         <PwaRegistrar />
       </body>
     </html>

@@ -1,12 +1,2 @@
-"use client";
-
-import { LifeQuestProvider } from "@/components/LifeQuestProvider";
-import { LifeQuestShell } from "@/components/life-quest/LifeQuestShell";
-
-export default function Page() {
-  return (
-    <LifeQuestProvider>
-      <LifeQuestShell />
-    </LifeQuestProvider>
-  );
-}
+import { AppScreen } from "@/components/AppScreen";
+export default function Page() { return <AppScreen view="home" />; }

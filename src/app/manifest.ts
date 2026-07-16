@@ -9,11 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#03140f",
     theme_color: "#03140f",
-    orientation: "portrait",
+    orientation: "any",
     icons: [
       {
         src: "/icon.svg",
-        sizes: "any",
+        sizes: "512x512",
         type: "image/svg+xml",
         purpose: "maskable"
       }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { BookmarkSimple, Heart, Plus, Play, X } from "@phosphor-icons/react";
-import type { AppTab } from "@/components/BottomNav";
 import { QuestCard } from "@/components/QuestCard";
 import { QuestForm } from "@/components/QuestForm";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
@@ -15,7 +15,8 @@ const sections: Array<{ id: QuestGuildSection; label: string; empty: string }> =
   { id: "today", label: "今日", empty: "今天沒有到期或每日任務。" }, { id: "inProgress", label: "進行中", empty: "沒有進行中的支線任務。" }, { id: "upcoming", label: "即將到期", empty: "未來七天沒有任務到期。" }, { id: "main", label: "主線任務", empty: "建立一個主線任務，開始拆解大型目標。" }, { id: "completed", label: "已完成", empty: "完成的任務會在這裡保留成長紀錄。" }, { id: "all", label: "全部任務", empty: "新增第一個任務，開始你的冒險。" }
 ];
 
-export function QuestGuild({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
+export function QuestGuild() {
+  const router = useRouter();
   const { state, addQuest, updateQuest, deleteQuest, completeQuest, toggleFavoriteAdventure, toggleSavedAdventure, selectAdventure } = useLifeQuest();
   const [activeSection, setActiveSection] = useState<QuestGuildSection>("today");
   const [formOpen, setFormOpen] = useState(false);
@@ -26,7 +27,7 @@ export function QuestGuild({ onNavigate }: { onNavigate: (tab: AppTab) => void }
   const currentSection = sections.find((section) => section.id === activeSection)!;
   const closeForm = () => { setFormOpen(false); setEditingQuest(null); };
   const submit = (draft: QuestDraft) => { if (editingQuest) updateQuest(editingQuest.id, draft); else addQuest(draft); closeForm(); };
-  const startAdventure = (id: string) => { selectAdventure(id); onNavigate("home"); };
+  const startAdventure = (id: string) => { selectAdventure(id); router.push("/"); };
   return <div className="space-y-5"><header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-semibold text-emerald-200">Quest Guild</p><h1 className="mt-1 text-3xl font-black text-zinc-50">任務公會</h1><p className="mt-2 text-sm leading-6 text-zinc-400">把今日行動、長期目標與完成紀錄放在同一張冒險地圖。</p></div><button type="button" onClick={() => { setEditingQuest(null); setFormOpen(true); }} className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-300 px-4 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 active:translate-y-px"><Plus className="size-4" weight="bold" />新增任務</button></header>
     {formOpen ? <QuestForm quest={editingQuest} onSubmit={submit} onCancel={closeForm} /> : null}
     <section className="game-card p-4 sm:p-5"><div className="flex flex-wrap gap-2" role="tablist" aria-label="任務篩選">{sections.map((section) => <button key={section.id} type="button" role="tab" aria-selected={activeSection === section.id} onClick={() => setActiveSection(section.id)} className={`rounded-lg px-3 py-2 text-sm font-bold transition active:translate-y-px ${activeSection === section.id ? "bg-emerald-300 text-zinc-950" : "border border-white/10 text-zinc-300 hover:border-emerald-300/30"}`}>{section.label}</button>)}</div><div className="mt-5"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-black text-zinc-50">{currentSection.label}</h2><span className="text-sm font-bold text-emerald-100">{quests.length} 項</span></div>{quests.length ? <div className="mt-4 grid gap-3 xl:grid-cols-2">{quests.map((quest) => <QuestCard key={quest.id} quest={quest} featured={quest.type === "main"} onComplete={completeQuest} onEdit={(item) => { setEditingQuest(item); setFormOpen(true); }} onDelete={deleteQuest} />)}</div> : <div className="mt-4 rounded-lg bg-white/[0.04] p-5 text-sm leading-6 text-zinc-400">{currentSection.empty}</div>}</div></section>

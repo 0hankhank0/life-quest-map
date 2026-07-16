@@ -1,5 +1,5 @@
-const CACHE_NAME = "life-quest-map-v0-1";
-const APP_SHELL = ["/", "/icon.svg", "/manifest.webmanifest"];
+const CACHE_NAME = "life-quest-map-v0-2";
+const APP_SHELL = ["/", "/quests", "/map", "/skills", "/history", "/profile", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -24,6 +24,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || caches.match("/")))
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+      if (response.ok && new URL(event.request.url).origin === self.location.origin) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+      }
+      return response;
+    }).catch(() => caches.match("/")))
   );
 });
