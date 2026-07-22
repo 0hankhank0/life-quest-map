@@ -9,13 +9,16 @@ import { getExpReward } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
 import { normalizeCustomMapLocation } from "@/lib/mapLocations";
-import type { LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, SavedQuote } from "@/types";
+import type { AdventureJournalEntry, CityEchoCategory, CompletionMood, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
 
 type StateRecord = Record<string, unknown>;
 type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
 
 const recommendationActions = new Set(["shown", "favorite", "saved", "dismissed", "completed"]);
 const quoteCategories = new Set(["main-quest", "level-up", "skill-up", "streak", "achievement", "location"]);
+const cityEchoCategories = new Set<CityEchoCategory>(["exploration", "connection", "rest", "awareness", "courage", "creation", "daily"]);
+const completionMoods = new Set<CompletionMood>(["relaxed", "happy", "surprised", "discovered", "calm", "unchanged"]);
+const quoteSourceTypes = new Set<QuoteSourceType>(["original", "public_domain", "user", "licensed"]);
 const uniqueIds = (items: unknown): string[] =>
   Array.isArray(items) ? [...new Set(items.filter((item): item is string => typeof item === "string"))] : [];
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -45,6 +48,27 @@ function normalizeSavedQuotes(value: unknown): SavedQuote[] {
       ...(typeof item.location.longitude === "number" && Number.isFinite(item.location.longitude) ? { longitude: item.location.longitude } : {})
     } : undefined;
     return [{ id: item.id, quoteId: item.quoteId, text: item.text, category: item.category as SavedQuote["category"], savedAt: item.savedAt, sourceType: typeof item.sourceType === "string" ? item.sourceType : undefined, sourceId: typeof item.sourceId === "string" ? item.sourceId : undefined, sourceTitle: typeof item.sourceTitle === "string" ? item.sourceTitle : undefined, location: location && Object.keys(location).length ? location : undefined }];
+  });
+}
+
+function normalizeAdventureJournal(value: unknown): AdventureJournalEntry[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.filter(isRecord).flatMap((item) => {
+    if (typeof item.id !== "string" || !item.id || seen.has(item.id) || typeof item.taskId !== "string" || typeof item.taskName !== "string" || !isDateString(item.completedAt) || typeof item.category !== "string" || !cityEchoCategories.has(item.category as CityEchoCategory) || typeof item.quoteId !== "string" || typeof item.quoteText !== "string" || typeof item.quoteSourceType !== "string" || !quoteSourceTypes.has(item.quoteSourceType as QuoteSourceType)) return [];
+    if (item.mood !== null && (typeof item.mood !== "string" || !completionMoods.has(item.mood as CompletionMood))) return [];
+    seen.add(item.id);
+    return [{
+      id: item.id, taskId: item.taskId, taskName: item.taskName, completedAt: item.completedAt,
+      category: item.category as CityEchoCategory, mood: item.mood as CompletionMood | null,
+      note: typeof item.note === "string" && item.note.trim() ? item.note.trim() : undefined,
+      quoteId: item.quoteId, quoteText: item.quoteText, quoteSourceType: item.quoteSourceType as QuoteSourceType,
+      quoteAuthor: typeof item.quoteAuthor === "string" ? item.quoteAuthor : undefined,
+      quoteWork: typeof item.quoteWork === "string" ? item.quoteWork : undefined,
+      quoteDynasty: typeof item.quoteDynasty === "string" ? item.quoteDynasty : undefined,
+      expReward: typeof item.expReward === "number" && Number.isFinite(item.expReward) ? item.expReward : undefined,
+      rewardLabel: typeof item.rewardLabel === "string" ? item.rewardLabel : undefined
+    }];
   });
 }
 
@@ -103,7 +127,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 5,
+    schemaVersion: 6,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },
@@ -121,6 +145,8 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     customMapLocations: normalizeCustomMapLocations(source.customMapLocations),
     unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds).filter((id) => skillNodeIds.has(id)),
     savedQuotes: normalizeSavedQuotes(source.savedQuotes),
+    adventureJournal: normalizeAdventureJournal(source.adventureJournal),
+    recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-4),
     userSettings: { ...defaultUserSettings, ...(isRecord(source.userSettings) && (source.userSettings.theme === "system" || source.userSettings.theme === "dark") ? { theme: source.userSettings.theme } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.reducedMotion === "boolean" ? { reducedMotion: source.userSettings.reducedMotion } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: source.userSettings.notificationsEnabled } : {}) }
   };
 }

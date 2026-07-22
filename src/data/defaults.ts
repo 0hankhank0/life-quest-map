@@ -219,7 +219,7 @@ export const mapLocations: MapLocation[] = [
 
 export function createInitialLifeQuestState(): LifeQuestState {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     profile: null,
     quests: createDemoQuests(),
     stats: { ...defaultStats },
@@ -245,6 +245,8 @@ export function createInitialLifeQuestState(): LifeQuestState {
     customMapLocations: [],
     unlockedSkillNodeIds: [],
     savedQuotes: [],
+    adventureJournal: [],
+    recentAdventureQuoteIds: [],
     userSettings: { ...defaultUserSettings }
   };
 }

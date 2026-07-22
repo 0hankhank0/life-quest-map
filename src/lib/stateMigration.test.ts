@@ -9,12 +9,14 @@ describe("state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.schemaVersion).toBe(6);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
     expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: false, notificationsEnabled: false });
     expect(migrated.savedQuotes).toEqual([]);
+    expect(migrated.adventureJournal).toEqual([]);
+    expect(migrated.recentAdventureQuoteIds).toEqual([]);
   });
 
   it("derives daily EXP when a v2 daily summary has no expEarned field", () => {
@@ -61,6 +63,17 @@ describe("state migration", () => {
     ] }, now);
     expect(migrated.savedQuotes).toHaveLength(1);
     expect(migrated.savedQuotes[0]).toMatchObject({ id: "quote-memory:quest-1", location: { name: "台北" } });
+  });
+
+  it("preserves valid journal entries and supplies safe defaults for legacy state", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, adventureJournal: [
+      { id: "journal:one", taskId: "quest-1", taskName: "散步", completedAt: "2026-07-15T08:00:00.000Z", category: "exploration", mood: "calm", quoteId: "city-4", quoteText: "城市沒有突然改變。", quoteSourceType: "original", expReward: 20 },
+      { id: "bad", taskId: 2 }
+    ], recentAdventureQuoteIds: ["city-1", "city-1", 3, "city-2", "city-3", "city-4", "city-5"] }, now);
+    expect(migrated.adventureJournal).toHaveLength(1);
+    expect(migrated.adventureJournal[0]).toMatchObject({ taskName: "散步", mood: "calm", quoteText: "城市沒有突然改變。" });
+    expect(migrated.recentAdventureQuoteIds).toEqual(["city-2", "city-3", "city-4", "city-5"]);
   });
 });
 

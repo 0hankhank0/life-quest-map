@@ -1,61 +1,81 @@
-import type { AdventureQuote, QuoteCategory } from "@/types";
+import type { AdventureQuote, CityEchoCategory, Quest, QuestCategory } from "@/types";
 
-const quotes: Record<QuoteCategory, AdventureQuote[]> = {
-  "main-quest": [
-    { id: "main-1", category: "main-quest", text: "今天完成的這一步，正在改變未來的地圖。" },
-    { id: "main-2", category: "main-quest", text: "主線向前推進，遠方的地標也更清楚了。" },
-    { id: "main-3", category: "main-quest", text: "任務完成，這段旅程留下了可靠的座標。" },
-    { id: "main-4", category: "main-quest", text: "你沒有跳過這一關，而是親手走了過來。" },
-    { id: "main-5", category: "main-quest", text: "地圖不會自己展開；你剛剛讓它多了一條路。" }
-  ],
-  "level-up": [
-    { id: "level-1", category: "level-up", text: "新的等級不是終點，是你已經走遠的證明。" },
-    { id: "level-2", category: "level-up", text: "能力值上升，下一段路也有了新的走法。" },
-    { id: "level-3", category: "level-up", text: "升級完成：你比昨天多了一點面對未知的裝備。" },
-    { id: "level-4", category: "level-up", text: "經驗累積成了階梯，現在可以看得更遠。" },
-    { id: "level-5", category: "level-up", text: "這次升級來自每一個沒有被略過的小行動。" }
-  ],
-  "skill-up": [
-    { id: "skill-1", category: "skill-up", text: "技能解鎖：這不是捷徑，是你練出來的新路徑。" },
-    { id: "skill-2", category: "skill-up", text: "新的能力已點亮，旅途中多了一盞可以帶著走的燈。" },
-    { id: "skill-3", category: "skill-up", text: "你把練習換成了真正可用的本事。" },
-    { id: "skill-4", category: "skill-up", text: "技能樹長出新枝，接下來的選擇也更多了。" },
-    { id: "skill-5", category: "skill-up", text: "一項能力被解鎖，因為你先做到了它要求的事。" }
-  ],
-  streak: [
-    { id: "streak-1", category: "streak", text: "連續完成不是衝刺，是你為自己留出的穩定路線。" },
-    { id: "streak-2", category: "streak", text: "今天也接上了昨天，旅程因此沒有斷線。" },
-    { id: "streak-3", category: "streak", text: "你正在把一個選擇，練成可依靠的節奏。" },
-    { id: "streak-4", category: "streak", text: "連續紀錄更新，地圖上多了一條不間斷的足跡。" },
-    { id: "streak-5", category: "streak", text: "穩定前進的人，會在回頭時看見很長的一段路。" }
-  ],
-  achievement: [
-    { id: "achievement-1", category: "achievement", text: "成就解鎖：這枚徽章記得你完成過的事。" },
-    { id: "achievement-2", category: "achievement", text: "新的里程碑亮起，因為你真的走到了這裡。" },
-    { id: "achievement-3", category: "achievement", text: "這不是偶然獲得的稱號，是行動留下的印記。" },
-    { id: "achievement-4", category: "achievement", text: "成就已收入行囊，下一段探索可以繼續了。" },
-    { id: "achievement-5", category: "achievement", text: "一項紀錄完成，地圖也替你標下了這個時刻。" }
-  ],
-  location: [
-    { id: "location-1", category: "location", text: "你在這裡完成任務，這個地點便有了新的意義。" },
-    { id: "location-2", category: "location", text: "一段路途、一項任務，現在都成了旅程的座標。" },
-    { id: "location-3", category: "location", text: "地圖上的標記亮起，因為你親自抵達並完成了它。" },
-    { id: "location-4", category: "location", text: "這裡不再只是地名，而是你完成過一件事的地方。" },
-    { id: "location-5", category: "location", text: "把腳步留在地圖上，也把完成留在今天。" }
-  ]
+export const cityEchoCategoryLabels: Record<CityEchoCategory, string> = {
+  exploration: "探索的回聲",
+  connection: "相遇的回聲",
+  rest: "休息的回聲",
+  awareness: "察覺的回聲",
+  courage: "踏出一步的回聲",
+  creation: "留下痕跡的回聲",
+  daily: "城市迴響"
 };
 
-export function pickAdventureQuote(category: QuoteCategory, recentIds: readonly string[] = []): AdventureQuote {
-  const options = quotes[category].filter((quote) => !recentIds.includes(quote.id));
-  const pool = options.length ? options : quotes[category];
-  return pool[Math.floor(Math.random() * pool.length)];
+const original = (id: string, text: string, categories: CityEchoCategory[], tags?: string[]): AdventureQuote => ({ id, text, categories, tags, sourceType: "original", enabled: true, weight: 3 });
+const publicDomain = (id: string, text: string, author: string, work: string, dynasty: string, categories: CityEchoCategory[]): AdventureQuote => ({ id, text, author, work, dynasty, categories, sourceType: "public_domain", enabled: true, weight: 1 });
+
+export const adventureQuotes: AdventureQuote[] = [
+  original("city-1", "平凡不是空白，只是它很少被好好記住。", ["daily", "awareness"]),
+  original("city-2", "今天不必變得更厲害，也可以和昨天有一點不同。", ["daily", "courage"]),
+  original("city-3", "快樂不一定來自遠方，有時只是今天多停留了十分鐘。", ["rest", "daily"]),
+  original("city-4", "城市沒有突然改變，是你開始用不同的方式看它。", ["exploration", "awareness"]),
+  original("city-5", "並不是每次冒險都要有所收穫，願意走出去本身就留下了痕跡。", ["exploration", "courage"]),
+  original("city-6", "停下來並沒有離開旅程，休息本來就是旅程的一部分。", ["rest", "daily"]),
+  original("city-7", "有些日子被記住，不是因為發生大事，而是有人願意多停留一下。", ["daily", "awareness"]),
+  original("city-8", "你注意到的光、聲音和風，都是今天的一部分。", ["awareness", "daily"]),
+  original("city-9", "沒有特別感覺也沒關係，這一刻照樣經過了你。", ["daily", "rest"]),
+  original("city-10", "和人多說幾句話，常常比想像中更能讓一天有了輪廓。", ["connection", "daily"]),
+  original("city-11", "有些嘗試不需要被證明，只要讓你知道自己可以選擇。", ["courage", "daily"]),
+  original("city-12", "留下幾個字，不是為了交代，是給以後的自己一盞小燈。", ["creation", "daily"]),
+  original("city-13", "今天的路沒有比較好，只是你走得比平常慢一點。", ["exploration", "rest"]),
+  original("city-14", "陪伴不一定要說很多話，願意在場就很珍貴。", ["connection", "rest"]),
+  publicDomain("pd-wangwei-1", "行到水窮處，坐看雲起時。", "王維", "終南別業", "唐", ["rest", "awareness"]),
+  publicDomain("pd-wangwei-2", "深林人不知，明月來相照。", "王維", "竹里館", "唐", ["awareness", "rest"]),
+  publicDomain("pd-taoyuanming-1", "採菊東籬下，悠然見南山。", "陶淵明", "飲酒·其五", "東晉", ["awareness", "rest"]),
+  publicDomain("pd-sushi-1", "何夜無月？何處無竹柏？但少閑人如吾兩人者耳。", "蘇軾", "記承天寺夜遊", "北宋", ["awareness", "connection"]),
+  publicDomain("pd-sushi-2", "回首向來蕭瑟處，歸去，也無風雨也無晴。", "蘇軾", "定風波·莫聽穿林打葉聲", "北宋", ["courage", "daily"])
+];
+
+const categoryMap: Record<QuestCategory, CityEchoCategory> = {
+  exploration: "exploration",
+  social: "connection",
+  creativity: "creation",
+  learning: "courage",
+  fitness: "rest",
+  discipline: "daily"
+};
+
+const keywordCategories: Array<[CityEchoCategory, RegExp]> = [
+  ["rest", /休息|放鬆|睡眠|停下|呼吸|散步|靜|茶|聽一首歌/i],
+  ["awareness", /觀察|天空|光線|聲音|注意|看見|感受|月|風/i],
+  ["connection", /朋友|家人|聊天|陪伴|訊息|一起|對話/i],
+  ["exploration", /探索|路線|一條路|不同路|新地方|散步|走走|地圖/i],
+  ["courage", /嘗試|不確定|踏出|面對|第一次/i],
+  ["creation", /創作|畫|寫|拍|記錄|表達|塗鴉/i]
+];
+
+export function inferCityEchoCategory(quest: Pick<Quest, "title" | "description" | "category" | "type">, tags: readonly string[] = []): CityEchoCategory {
+  const text = `${quest.title} ${quest.description} ${tags.join(" ")}`;
+  const keyword = keywordCategories.find(([, pattern]) => pattern.test(text));
+  if (keyword) return keyword[0];
+  if (quest.type === "map") return "exploration";
+  return categoryMap[quest.category] ?? "daily";
 }
 
-export const quoteCategoryLabels: Record<QuoteCategory, string> = {
-  "main-quest": "主線任務",
-  "level-up": "角色升級",
-  "skill-up": "技能升級",
-  streak: "連續完成",
-  achievement: "成就解鎖",
-  location: "地點任務"
-};
+function weightedPick(quotes: readonly AdventureQuote[], random: () => number): AdventureQuote {
+  const total = quotes.reduce((sum, quote) => sum + Math.max(1, quote.weight ?? 1), 0);
+  let cursor = random() * total;
+  for (const quote of quotes) {
+    cursor -= Math.max(1, quote.weight ?? 1);
+    if (cursor <= 0) return quote;
+  }
+  return quotes[quotes.length - 1];
+}
+
+export function pickAdventureQuote(category: CityEchoCategory, recentIds: readonly string[] = [], random = Math.random): AdventureQuote {
+  const enabled = adventureQuotes.filter((quote) => quote.enabled);
+  const matching = enabled.filter((quote) => quote.categories.includes(category));
+  const fallback = enabled.filter((quote) => quote.categories.includes("daily") && quote.sourceType === "original");
+  const candidates = matching.length ? matching : fallback.length ? fallback : enabled;
+  const fresh = candidates.filter((quote) => !recentIds.includes(quote.id));
+  return weightedPick(fresh.length ? fresh : candidates, random);
+}

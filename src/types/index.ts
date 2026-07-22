@@ -188,10 +188,28 @@ export type QuoteCategory =
   | "achievement"
   | "location";
 
+export type CityEchoCategory =
+  | "exploration"
+  | "connection"
+  | "rest"
+  | "awareness"
+  | "courage"
+  | "creation"
+  | "daily";
+
+export type QuoteSourceType = "original" | "public_domain" | "user" | "licensed";
+
 export interface AdventureQuote {
   id: string;
   text: string;
-  category: QuoteCategory;
+  author?: string;
+  work?: string;
+  dynasty?: string;
+  sourceType: QuoteSourceType;
+  categories: CityEchoCategory[];
+  tags?: string[];
+  enabled: boolean;
+  weight?: number;
 }
 
 export interface SavedQuote {
@@ -214,16 +232,38 @@ export interface SavedQuote {
 export interface CompletionFeedback {
   eventId: string;
   quote: AdventureQuote;
-  sourceType: string;
-  sourceId?: string;
-  sourceTitle: string;
+  taskId: string;
+  taskName: string;
+  completedAt: string;
+  category: CityEchoCategory;
+  questCategory?: QuestCategory;
   expReward?: number;
-  statLabel?: string;
-  location?: SavedQuote["location"];
+  rewardLabel?: string;
+  canSaveJournal?: boolean;
+}
+
+export type CompletionMood = "relaxed" | "happy" | "surprised" | "discovered" | "calm" | "unchanged";
+
+export interface AdventureJournalEntry {
+  id: string;
+  taskId: string;
+  taskName: string;
+  completedAt: string;
+  category: CityEchoCategory;
+  mood: CompletionMood | null;
+  note?: string;
+  quoteId: string;
+  quoteText: string;
+  quoteSourceType: QuoteSourceType;
+  quoteAuthor?: string;
+  quoteWork?: string;
+  quoteDynasty?: string;
+  expReward?: number;
+  rewardLabel?: string;
 }
 
 export interface LifeQuestState {
-  schemaVersion: 5;
+  schemaVersion: 6;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
@@ -241,6 +281,8 @@ export interface LifeQuestState {
   customMapLocations: MapLocation[];
   unlockedSkillNodeIds: string[];
   savedQuotes: SavedQuote[];
+  adventureJournal: AdventureJournalEntry[];
+  recentAdventureQuoteIds: string[];
   userSettings: UserSettings;
 }
 
