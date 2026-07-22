@@ -86,6 +86,18 @@ describe("state migration", () => {
     expect(migrated.adventureJournal[1]).toMatchObject({ quoteText: "舊資料自訂語錄", quoteSourceType: "unknown", quoteSourceStatus: "likely" });
     expect(migrateLifeQuestState(migrated, now).adventureJournal).toEqual(migrated.adventureJournal);
   });
+
+  it("preserves modern quote sources and backfills their source URL from the current catalog", () => {
+    const state = createInitialLifeQuestState();
+    const text = "個人獎項是其次，真正重要的是團隊。";
+    const migrated = migrateLifeQuestState({ ...state, adventureJournal: [
+      { id: "journal:football", taskId: "quest-1", taskName: "散步", completedAt: "2026-07-15T08:00:00.000Z", category: "connection", quoteId: "football-messi-team-counts", quoteText: text, quoteSourceType: "football", quoteSourceStatus: "verified" },
+      { id: "journal:old", taskId: "quest-2", taskName: "寫字", completedAt: "2026-07-15T09:00:00.000Z", category: "creation", quoteId: "city-1", quoteText: "平凡不是空白，只是它很少被好好記住。", quoteSourceType: "original", quoteSourceStatus: "original" }
+    ] }, now);
+    expect(migrated.adventureJournal[0]).toMatchObject({ quoteSourceType: "football", quoteSourceUrl: "https://inside.fifa.com/news/messi-its-the-team-that-counts" });
+    expect(migrated.adventureJournal[1].quoteSourceUrl).toBeUndefined();
+    expect(migrateLifeQuestState(migrated, now).adventureJournal).toEqual(migrated.adventureJournal);
+  });
 });
 
 describe("state import", () => {

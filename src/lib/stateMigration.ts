@@ -19,9 +19,9 @@ const recommendationActions = new Set(["shown", "favorite", "saved", "dismissed"
 const quoteCategories = new Set(["main-quest", "level-up", "skill-up", "streak", "achievement", "location"]);
 const cityEchoCategories = new Set<CityEchoCategory>(["exploration", "connection", "rest", "awareness", "courage", "creation", "daily"]);
 const completionMoods = new Set<CompletionMood>(["relaxed", "happy", "surprised", "discovered", "calm", "unchanged"]);
-const quoteSourceTypes = new Set<QuoteSourceType>(["movie", "game", "proPlayer", "original", "public_domain", "game-character", "game-skin", "esports-player", "user", "licensed", "unknown"]);
+const quoteSourceTypes = new Set<QuoteSourceType>(["movie", "game", "proPlayer", "football", "athlete", "proverb", "original", "public_domain", "game-character", "game-skin", "esports-player", "user", "licensed", "unknown"]);
 const attributionStatuses = new Set<AttributionStatus>(["verified", "source-known", "unverified"]);
-const quoteSourceStatuses = new Set<AdventureQuoteSourceStatus>(["verified", "likely", "paraphrase", "original"]);
+const quoteSourceStatuses = new Set<AdventureQuoteSourceStatus>(["verified", "likely", "paraphrase", "unverified", "original"]);
 const uniqueIds = (items: unknown): string[] =>
   Array.isArray(items) ? [...new Set(items.filter((item): item is string => typeof item === "string"))] : [];
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -79,6 +79,7 @@ function normalizeAdventureJournal(value: unknown): AdventureJournalEntry[] {
       note: typeof item.note === "string" && item.note.trim() ? item.note.trim() : undefined,
       quoteId, quoteText, quoteSourceType, quoteSourceStatus, quoteAttributionStatus,
       quoteSourceTitle: typeof item.quoteSourceTitle === "string" ? item.quoteSourceTitle : knownQuote?.sourceTitle,
+      quoteSourceUrl: typeof item.quoteSourceUrl === "string" && item.quoteSourceUrl.trim() ? item.quoteSourceUrl : knownQuote?.sourceUrl,
       quoteGame: typeof item.quoteGame === "string" ? item.quoteGame : knownQuote?.game,
       quoteSkin: typeof item.quoteSkin === "string" ? item.quoteSkin : knownQuote?.skin,
       quoteSpeaker: typeof item.quoteSpeaker === "string" ? item.quoteSpeaker : knownQuote?.speaker,

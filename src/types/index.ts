@@ -197,7 +197,7 @@ export type CityEchoCategory =
   | "creation"
   | "daily";
 
-export type AdventureQuoteSourceType = "movie" | "game" | "proPlayer" | "original" | "public_domain";
+export type AdventureQuoteSourceType = "movie" | "game" | "proPlayer" | "football" | "athlete" | "proverb" | "original" | "public_domain";
 
 /** Includes retired values so existing LocalStorage journal snapshots remain readable. */
 export type QuoteSourceType = AdventureQuoteSourceType
@@ -211,7 +211,7 @@ export type QuoteSourceType = AdventureQuoteSourceType
   | "unknown";
 
 export type AttributionStatus = "verified" | "source-known" | "unverified";
-export type AdventureQuoteSourceStatus = "verified" | "likely" | "paraphrase" | "original";
+export type AdventureQuoteSourceStatus = "verified" | "likely" | "paraphrase" | "unverified" | "original";
 
 export interface AdventureQuote {
   id: string;
@@ -224,6 +224,7 @@ export interface AdventureQuote {
   sourceType: QuoteSourceType;
   sourceStatus: AdventureQuoteSourceStatus;
   sourceTitle?: string;
+  sourceUrl?: string;
   game?: string;
   skin?: string;
   /** Retained only to read snapshots written by the previous release. */
@@ -280,6 +281,7 @@ export interface AdventureJournalEntry {
   quoteSourceType: QuoteSourceType;
   quoteSourceStatus: AdventureQuoteSourceStatus;
   quoteSourceTitle?: string;
+  quoteSourceUrl?: string;
   quoteGame?: string;
   quoteSkin?: string;
   /** Retained only to read snapshots written by the previous release. */

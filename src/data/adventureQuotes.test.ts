@@ -32,6 +32,10 @@ describe("adventure quote attributions", () => {
     expect(adventureQuotes.every((quote) => Boolean(quote.sourceType && quote.sourceStatus))).toBe(true);
   });
 
+  it("keeps quote IDs and exact quote text unique", () => {
+    expect(new Set(adventureQuotes.map((quote) => quote.text)).size).toBe(adventureQuotes.length);
+  });
+
   it("requires named speakers for game and pro player quotations", () => {
     expect(adventureQuotes.filter((quote) => quote.sourceType === "game" || quote.sourceType === "proPlayer").every((quote) => Boolean(quote.speaker))).toBe(true);
   });
@@ -43,6 +47,24 @@ describe("adventure quote attributions", () => {
     expect(formatAdventureQuoteAttribution(skin)).toBe("——李星・神拳，《英雄聯盟》");
     expect(formatAdventureQuoteAttribution(movieParaphrase)).toBe("——改寫自《楚門的世界》");
     expect(formatAdventureQuoteAttribution(deft)).toBe("——意譯自 Deft，《英雄聯盟》職業選手");
+  });
+
+  it("formats football and unverified proverb attributions accurately", () => {
+    const messi = adventureQuotes.find((quote) => quote.id === "football-messi-team-counts")!;
+    const modric = adventureQuotes.find((quote) => quote.id === "football-modric-believe-forward")!;
+    const proverb = adventureQuotes.find((quote) => quote.id === "proverb-dreams-greatness")!;
+    expect(formatAdventureQuoteAttribution(messi)).toBe("——梅西｜FIFA 訪談中譯");
+    expect(formatAdventureQuoteAttribution(modric)).toBe("——意譯自 盧卡・莫德里奇｜FIFA 專訪");
+    expect(formatAdventureQuoteAttribution(proverb)).toBe("——佚名｜現代流傳格言（出處待考）");
+  });
+
+  it("requires traceable metadata for football and athlete quotations", () => {
+    const modernQuotes = adventureQuotes.filter((quote) => quote.sourceType === "football" || quote.sourceType === "athlete");
+    expect(modernQuotes).not.toHaveLength(0);
+    expect(modernQuotes.every((quote) => Boolean(quote.speaker && quote.sourceTitle && quote.sourceUrl))).toBe(true);
+    const proverb = adventureQuotes.find((quote) => quote.id === "proverb-dreams-greatness")!;
+    expect(proverb).toMatchObject({ author: "佚名", sourceStatus: "unverified" });
+    expect(proverb.speaker).toBeUndefined();
   });
 
   it("keeps excluded misattributed quotes out and uses 貫穿 for ShowMaker", () => {

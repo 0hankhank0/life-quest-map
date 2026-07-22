@@ -6,7 +6,7 @@ export const cityEchoCategoryLabels: Record<CityEchoCategory, string> = {
 };
 
 const original = (id: string, text: string, categories: CityEchoCategory[], tags?: string[]): AdventureQuote => ({ id, text, categories, tags, sourceType: "original", sourceTitle: "Life Quest Map", sourceStatus: "original", enabled: true, weight: 3 });
-const publicDomain = (id: string, text: string, author: string, work: string, dynasty: string, categories: CityEchoCategory[]): AdventureQuote => ({ id, text, author, work, dynasty, categories, sourceType: "public_domain", sourceTitle: work, sourceStatus: "verified", enabled: true, weight: 1 });
+const publicDomain = (id: string, text: string, author: string, work: string, dynasty: string, categories: CityEchoCategory[], tags?: string[]): AdventureQuote => ({ id, text, author, work, dynasty, categories, tags, sourceType: "public_domain", sourceTitle: work, sourceStatus: "verified", enabled: true, weight: 1 });
 const external = (quote: Omit<AdventureQuote, "categories" | "weight">, categories: CityEchoCategory[]): AdventureQuote => ({ ...quote, categories, weight: 1 });
 
 export const adventureQuotes: AdventureQuote[] = [
@@ -30,6 +30,14 @@ export const adventureQuotes: AdventureQuote[] = [
   publicDomain("pd-taoyuanming-1", "採菊東籬下，悠然見南山。", "陶淵明", "飲酒·其五", "東晉", ["awareness", "rest"]),
   publicDomain("pd-sushi-1", "何夜無月？何處無竹柏？但少閑人如吾兩人者耳。", "蘇軾", "記承天寺夜遊", "北宋", ["awareness", "connection"]),
   publicDomain("pd-sushi-2", "回首向來蕭瑟處，歸去，也無風雨也無晴。", "蘇軾", "定風波·莫聽穿林打葉聲", "北宋", ["courage", "daily"]),
+  publicDomain("pd-zhouyi-self-renewal", "天行健，君子以自強不息。", "佚名", "周易・乾卦・象傳", "先秦", ["courage", "daily"], ["自強", "堅持", "成長"]),
+  publicDomain("pd-analects-will", "三軍可奪帥也，匹夫不可奪志也。", "孔子", "論語・子罕", "先秦", ["courage", "daily"], ["志向", "信念", "堅持"]),
+  publicDomain("pd-analects-wise-brave", "知者不惑，仁者不憂，勇者不懼。", "孔子", "論語・子罕", "先秦", ["awareness", "courage"], ["智慧", "勇氣", "仁愛"]),
+  publicDomain("pd-analects-pine-cypress", "歲寒，然後知松柏之後凋也。", "孔子", "論語・子罕", "先秦", ["courage", "rest"], ["逆境", "品格", "堅持"]),
+  publicDomain("pd-analects-haste", "欲速則不達，見小利則大事不成。", "孔子", "論語・子路", "先秦", ["rest", "awareness"], ["耐心", "節奏", "遠見"]),
+  publicDomain("pd-libai-break-waves", "長風破浪會有時，直掛雲帆濟滄海。", "李白", "行路難・其一", "唐", ["courage", "exploration"], ["希望", "冒險", "志向"]),
+  publicDomain("pd-zhengxie-bamboo", "千磨萬擊還堅勁，任爾東西南北風。", "鄭燮", "竹石", "清", ["courage", "daily"], ["韌性", "逆境", "堅持"]),
+  publicDomain("pd-liuyuxi-new-spring", "沉舟側畔千帆過，病樹前頭萬木春。", "劉禹錫", "酬樂天揚州初逢席上見贈", "唐", ["courage", "daily"], ["更新", "希望", "重新開始"]),
   external({ id: "movie-forrest-gump-chocolate", text: "生活就像一盒巧克力，你永遠不知道下一顆是什麼味道。", sourceType: "movie", sourceTitle: "《阿甘正傳》", speaker: "阿甘", sourceStatus: "verified", tags: ["人生", "未知", "前進"], enabled: true }, ["daily", "courage"]),
   external({ id: "movie-leon-life-is-hard", text: "人生總是這麼痛苦嗎，還是只有小時候如此？一直都是。", sourceType: "movie", sourceTitle: "《這個殺手不太冷》", speaker: "瑪蒂達與里昂", sourceStatus: "verified", tags: ["人生", "成長", "堅持"], enabled: true }, ["courage", "awareness"]),
   external({ id: "movie-shawshank-some-birds", text: "有些鳥注定不會被關在牢籠裡，牠們的羽毛太過耀眼。", sourceType: "movie", sourceTitle: "《刺激1995》", speaker: "瑞德", sourceStatus: "verified", tags: ["自由", "希望", "自我"], enabled: true }, ["courage", "exploration"]),
@@ -46,7 +54,22 @@ export const adventureQuotes: AdventureQuote[] = [
   external({ id: "lol-jhin-future-self", text: "現在你是何人？未來你又將成為何物？", sourceType: "game", sourceTitle: "《英雄聯盟》", speaker: "燼", game: "《英雄聯盟》", sourceStatus: "verified", tags: ["未來", "自我", "蛻變"], enabled: true }, ["awareness", "creation"]),
   external({ id: "lol-kindred-tomorrow-hope", text: "明天只是一個希望，不是一個承諾。", sourceType: "game", sourceTitle: "《英雄聯盟》", speaker: "鏡爪", game: "《英雄聯盟》", sourceStatus: "verified", tags: ["明天", "希望", "當下"], enabled: true }, ["daily", "courage"]),
   external({ id: "pro-showmaker-failure-in-life", text: "失敗總是貫穿人生始終，這就是人生。", sourceType: "proPlayer", sourceTitle: "《英雄聯盟》職業選手語錄", speaker: "ShowMaker", game: "《英雄聯盟》", sourceStatus: "verified", tags: ["失敗", "人生", "接受"], enabled: true }, ["courage", "daily"]),
-  external({ id: "pro-deft-personal-experience", text: "人生在世，不太需要其他人的意見；有些事情不親身經歷，是不會真正明白的。", sourceType: "proPlayer", sourceTitle: "《英雄聯盟》職業選手語錄", speaker: "Deft", game: "《英雄聯盟》", sourceStatus: "paraphrase", tags: ["經歷", "選擇", "人生"], enabled: true }, ["awareness", "daily"])
+  external({ id: "pro-deft-personal-experience", text: "人生在世，不太需要其他人的意見；有些事情不親身經歷，是不會真正明白的。", sourceType: "proPlayer", sourceTitle: "《英雄聯盟》職業選手語錄", speaker: "Deft", game: "《英雄聯盟》", sourceStatus: "paraphrase", tags: ["經歷", "選擇", "人生"], enabled: true }, ["awareness", "daily"]),
+  external({ id: "football-modric-believe-forward", text: "即使在困難的時候，也要相信自己，持續向前。", speaker: "盧卡・莫德里奇", sourceType: "football", sourceTitle: "FIFA 專訪", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://inside.fifa.com/en/news/modric-a-night-when-all-my-dreams-came-true", tags: ["相信自己", "逆境", "前進"], enabled: true }, ["courage", "daily"]),
+  external({ id: "football-gakpo-hard-work", text: "不論從哪裡開始，努力都能帶你走得更遠。", speaker: "科迪・加克波", sourceType: "football", sourceTitle: "The Players’ Tribune", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.theplayerstribune.com/cody-gakpo-premier-league-liverpool-fc-soccer-football", tags: ["努力", "起點", "成長"], enabled: true }, ["courage", "daily"]),
+  external({ id: "football-gabriel-jesus-dream", text: "不要停止戰鬥，也永遠不要停止做夢。", speaker: "加布里埃爾・熱蘇斯", sourceType: "football", sourceTitle: "The Players’ Tribune", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.theplayerstribune.com/articles/gabriel-jesus-call-your-ma", tags: ["夢想", "奮鬥", "堅持"], enabled: true }, ["courage", "daily"]),
+  external({ id: "football-ranieri-work-hard", text: "你們替我們做夢；我們只管努力。", speaker: "克勞迪奧・拉涅利", sourceType: "football", sourceTitle: "The Players’ Tribune", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.theplayerstribune.com/articles/claudio-ranieri-leicester-city-premier-league", tags: ["努力", "夢想", "專注"], enabled: true }, ["courage", "daily"]),
+  external({ id: "football-ranieri-one-heart", text: "二十六名球員，二十六種思想，卻擁有同一顆心。", speaker: "克勞迪奧・拉涅利", sourceType: "football", sourceTitle: "The Players’ Tribune", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.theplayerstribune.com/articles/claudio-ranieri-leicester-city-premier-league", tags: ["團隊", "同心", "合作"], enabled: true }, ["connection", "courage"]),
+  external({ id: "football-jorginho-not-alone", text: "在足球和人生中，沒有人能獨自走到頂峰。", speaker: "若日尼奧", sourceType: "football", sourceTitle: "The Players’ Tribune", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.theplayerstribune.com/posts/jorginho-premier-league-chelsea-italy-soccer", tags: ["團隊", "同行", "支持"], enabled: true }, ["connection", "courage"]),
+  external({ id: "football-ronaldo-professional", text: "我知道自己要走向哪裡：我會成為職業球員。", speaker: "克里斯蒂亞諾・羅納度", sourceType: "football", sourceTitle: "UEFA 訪談", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.uefa.com/uefaeuro/history/news/0253-0d816dccc235-61cf66bf2c76-1000--cristiano-ronaldo-on-fate-childhood-and-portugal/", tags: ["目標", "夢想", "信念"], enabled: true }, ["courage", "daily"]),
+  external({ id: "football-messi-team-counts", text: "個人獎項是其次，真正重要的是團隊。", speaker: "梅西", sourceType: "football", sourceTitle: "FIFA 訪談中譯", sourceStatus: "verified", note: "中譯", sourceUrl: "https://inside.fifa.com/news/messi-its-the-team-that-counts", tags: ["團隊", "榮耀", "合作"], enabled: true }, ["connection", "courage"]),
+  external({ id: "football-messi-fight-everything", text: "我們必須永遠為所有冠軍而戰。", speaker: "梅西", sourceType: "football", sourceTitle: "巴塞隆納官方訪談", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.fcbarcelona.com/en/news/759155/leo-messi-we-want-to-win-everything-always/amp", tags: ["奮鬥", "目標", "勝利"], enabled: true }, ["courage", "daily"]),
+  external({ id: "athlete-jeter-keep-pushing", text: "不要放棄；穿過失敗，夢想才有機會成真。", speaker: "Derek Jeter", sourceType: "athlete", sourceTitle: "The Players’ Tribune", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.theplayerstribune.com/posts/derek-jeter-letter-to-my-younger-self-new-york-yankees-mlb-baseball", tags: ["失敗", "堅持", "夢想"], enabled: true }, ["courage", "daily"]),
+  external({ id: "proverb-dreams-greatness", text: "人因夢想而偉大。", author: "佚名", sourceType: "proverb", sourceTitle: "現代流傳格言", sourceStatus: "unverified", note: "常被誤標為名人語錄，目前缺少可靠原始出處", tags: ["夢想", "偉大", "志向"], enabled: true }, ["courage", "daily"]),
+  original("original-dream-depart-arrive", "人因夢想而出發，也因努力而抵達。", ["courage", "daily"], ["夢想", "努力", "抵達"]),
+  original("original-quest-becoming", "真正重要的，不只是完成任務，而是你成為了怎樣的人。", ["daily", "awareness"], ["任務", "成長", "自我"]),
+  original("original-slow-still-forward", "走得慢沒有關係，只要今天的你仍在前進。", ["rest", "courage"], ["節奏", "前進", "堅持"]),
+  external({ id: "original-together-forward", text: "個人榮耀是其次，真正重要的是與你並肩前進的人。", sourceType: "original", sourceTitle: "Life Quest Map", sourceStatus: "original", note: "靈感來自梅西談團隊的重要性", tags: ["同行", "團隊", "陪伴"], enabled: true }, ["connection", "courage"])
 ];
 
 /** Matches only identical current text, so migrated journals never rewrite a saved quote. */
