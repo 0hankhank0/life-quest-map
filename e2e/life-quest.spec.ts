@@ -38,6 +38,8 @@ test("saved experience persists with its city echo snapshot", async ({ page }) =
   await onboard(page);
   await page.getByTestId("complete-micro-adventure").click();
   const echo = await page.getByTestId("city-echo-text").innerText();
+  const attributionLocator = page.getByTestId("city-echo-attribution");
+  const attribution = await attributionLocator.count() ? await attributionLocator.textContent() : null;
   await page.getByRole("button", { name: "平靜" }).click();
   await page.getByTestId("completion-note").fill("E2E 留下的一點光。");
   await page.getByTestId("save-completion-experience").click();
@@ -46,9 +48,11 @@ test("saved experience persists with its city echo snapshot", async ({ page }) =
   await expect(page.getByText("E2E 留下的一點光。", { exact: true })).toBeVisible();
   await expect(page.getByText("平靜", { exact: false })).toBeVisible();
   await expect(page.getByText(echo, { exact: false })).toBeVisible();
+  if (attribution) await expect(page.getByText(attribution, { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText("E2E 留下的一點光。", { exact: true })).toBeVisible();
   await expect(page.getByText(echo, { exact: false })).toBeVisible();
+  if (attribution) await expect(page.getByText(attribution, { exact: true })).toBeVisible();
 });
 
 test("mobile completion dialog stays usable", async ({ page }) => {
@@ -62,6 +66,12 @@ test("mobile completion dialog stays usable", async ({ page }) => {
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+  const attribution = page.getByTestId("city-echo-attribution");
+  if (await attribution.count()) {
+    const attributionBox = await attribution.boundingBox();
+    expect(attributionBox).not.toBeNull();
+    expect(attributionBox!.x + attributionBox!.width).toBeLessThanOrEqual(390);
+  }
   await page.getByTestId("complete-only").click();
   await expect(dialog).toBeHidden();
 });

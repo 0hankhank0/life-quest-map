@@ -9,7 +9,8 @@ import { getExpReward } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
 import { normalizeCustomMapLocation } from "@/lib/mapLocations";
-import type { AdventureJournalEntry, CityEchoCategory, CompletionMood, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
+import { findAdventureQuote } from "@/data/adventureQuotes";
+import type { AdventureJournalEntry, AdventureQuoteSourceStatus, AttributionStatus, CityEchoCategory, CompletionMood, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
 
 type StateRecord = Record<string, unknown>;
 type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
@@ -18,7 +19,9 @@ const recommendationActions = new Set(["shown", "favorite", "saved", "dismissed"
 const quoteCategories = new Set(["main-quest", "level-up", "skill-up", "streak", "achievement", "location"]);
 const cityEchoCategories = new Set<CityEchoCategory>(["exploration", "connection", "rest", "awareness", "courage", "creation", "daily"]);
 const completionMoods = new Set<CompletionMood>(["relaxed", "happy", "surprised", "discovered", "calm", "unchanged"]);
-const quoteSourceTypes = new Set<QuoteSourceType>(["original", "public_domain", "user", "licensed"]);
+const quoteSourceTypes = new Set<QuoteSourceType>(["movie", "game", "proPlayer", "original", "public_domain", "game-character", "game-skin", "esports-player", "user", "licensed", "unknown"]);
+const attributionStatuses = new Set<AttributionStatus>(["verified", "source-known", "unverified"]);
+const quoteSourceStatuses = new Set<AdventureQuoteSourceStatus>(["verified", "likely", "paraphrase", "original"]);
 const uniqueIds = (items: unknown): string[] =>
   Array.isArray(items) ? [...new Set(items.filter((item): item is string => typeof item === "string"))] : [];
 const isRecord = (value: unknown): value is StateRecord => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -55,24 +58,41 @@ function normalizeAdventureJournal(value: unknown): AdventureJournalEntry[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   return value.filter(isRecord).flatMap((item) => {
-    if (typeof item.id !== "string" || !item.id || seen.has(item.id) || typeof item.taskId !== "string" || typeof item.taskName !== "string" || !isDateString(item.completedAt) || typeof item.category !== "string" || !cityEchoCategories.has(item.category as CityEchoCategory) || typeof item.quoteId !== "string" || typeof item.quoteText !== "string" || typeof item.quoteSourceType !== "string" || !quoteSourceTypes.has(item.quoteSourceType as QuoteSourceType)) return [];
-    if (item.mood !== null && (typeof item.mood !== "string" || !completionMoods.has(item.mood as CompletionMood))) return [];
+    const quoteText = typeof item.quoteText === "string" ? item.quoteText : typeof item.quote === "string" ? item.quote : undefined;
+    if (typeof item.id !== "string" || !item.id || seen.has(item.id) || typeof item.taskId !== "string" || typeof item.taskName !== "string" || !isDateString(item.completedAt) || typeof item.category !== "string" || !cityEchoCategories.has(item.category as CityEchoCategory) || !quoteText) return [];
+    if (item.mood != null && (typeof item.mood !== "string" || !completionMoods.has(item.mood as CompletionMood))) return [];
+    const knownQuote = findAdventureQuote(item.quoteId, quoteText);
+    const quoteId = typeof item.quoteId === "string" && item.quoteId ? item.quoteId : knownQuote?.id ?? `legacy:${item.id}`;
+    const quoteSourceType = typeof item.quoteSourceType === "string" && quoteSourceTypes.has(item.quoteSourceType as QuoteSourceType)
+      ? item.quoteSourceType as QuoteSourceType
+      : knownQuote?.sourceType ?? "unknown";
+    const quoteSourceStatus = typeof item.quoteSourceStatus === "string" && quoteSourceStatuses.has(item.quoteSourceStatus as AdventureQuoteSourceStatus)
+      ? item.quoteSourceStatus as AdventureQuoteSourceStatus
+      : knownQuote?.sourceStatus ?? (quoteSourceType === "unknown" || item.quoteAttributionStatus === "unverified" ? "likely" : "verified");
+    const quoteAttributionStatus = typeof item.quoteAttributionStatus === "string" && attributionStatuses.has(item.quoteAttributionStatus as AttributionStatus)
+      ? item.quoteAttributionStatus as AttributionStatus
+      : knownQuote?.attributionStatus ?? "unverified";
     seen.add(item.id);
     return [{
       id: item.id, taskId: item.taskId, taskName: item.taskName, completedAt: item.completedAt,
-      category: item.category as CityEchoCategory, mood: item.mood as CompletionMood | null,
+      category: item.category as CityEchoCategory, mood: (item.mood ?? null) as CompletionMood | null,
       note: typeof item.note === "string" && item.note.trim() ? item.note.trim() : undefined,
-      quoteId: item.quoteId, quoteText: item.quoteText, quoteSourceType: item.quoteSourceType as QuoteSourceType,
-      quoteAuthor: typeof item.quoteAuthor === "string" ? item.quoteAuthor : undefined,
-      quoteWork: typeof item.quoteWork === "string" ? item.quoteWork : undefined,
-      quoteDynasty: typeof item.quoteDynasty === "string" ? item.quoteDynasty : undefined,
+      quoteId, quoteText, quoteSourceType, quoteSourceStatus, quoteAttributionStatus,
+      quoteSourceTitle: typeof item.quoteSourceTitle === "string" ? item.quoteSourceTitle : knownQuote?.sourceTitle,
+      quoteGame: typeof item.quoteGame === "string" ? item.quoteGame : knownQuote?.game,
+      quoteSkin: typeof item.quoteSkin === "string" ? item.quoteSkin : knownQuote?.skin,
+      quoteSpeaker: typeof item.quoteSpeaker === "string" ? item.quoteSpeaker : knownQuote?.speaker,
+      quoteAuthor: typeof item.quoteAuthor === "string" ? item.quoteAuthor : knownQuote?.author,
+      quoteWork: typeof item.quoteWork === "string" ? item.quoteWork : knownQuote?.work,
+      quoteDynasty: typeof item.quoteDynasty === "string" ? item.quoteDynasty : knownQuote?.dynasty,
+      quoteNote: typeof item.quoteNote === "string" ? item.quoteNote : knownQuote?.note,
       expReward: typeof item.expReward === "number" && Number.isFinite(item.expReward) ? item.expReward : undefined,
       rewardLabel: typeof item.rewardLabel === "string" ? item.rewardLabel : undefined
     }];
   });
 }
 
-/** Converts any persisted state-shaped object into the complete v2 schema. */
+/** Converts any persisted state-shaped object into the complete v8 schema. */
 export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQuestState {
   const fallback = createInitialLifeQuestState();
   const source = isRecord(value) ? value : {};
@@ -127,7 +147,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 6,
+    schemaVersion: 8,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },

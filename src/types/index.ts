@@ -197,15 +197,38 @@ export type CityEchoCategory =
   | "creation"
   | "daily";
 
-export type QuoteSourceType = "original" | "public_domain" | "user" | "licensed";
+export type AdventureQuoteSourceType = "movie" | "game" | "proPlayer" | "original" | "public_domain";
+
+/** Includes retired values so existing LocalStorage journal snapshots remain readable. */
+export type QuoteSourceType = AdventureQuoteSourceType
+  | "game-character"
+  | "game-skin"
+  | "esports-player"
+  | "original"
+  | "public_domain"
+  | "user"
+  | "licensed"
+  | "unknown";
+
+export type AttributionStatus = "verified" | "source-known" | "unverified";
+export type AdventureQuoteSourceStatus = "verified" | "likely" | "paraphrase" | "original";
 
 export interface AdventureQuote {
   id: string;
   text: string;
+  /** Speaker for voiced lines; author remains for literary quotations. */
+  speaker?: string;
   author?: string;
   work?: string;
   dynasty?: string;
   sourceType: QuoteSourceType;
+  sourceStatus: AdventureQuoteSourceStatus;
+  sourceTitle?: string;
+  game?: string;
+  skin?: string;
+  /** Retained only to read snapshots written by the previous release. */
+  attributionStatus?: AttributionStatus;
+  note?: string;
   categories: CityEchoCategory[];
   tags?: string[];
   enabled: boolean;
@@ -255,15 +278,23 @@ export interface AdventureJournalEntry {
   quoteId: string;
   quoteText: string;
   quoteSourceType: QuoteSourceType;
+  quoteSourceStatus: AdventureQuoteSourceStatus;
+  quoteSourceTitle?: string;
+  quoteGame?: string;
+  quoteSkin?: string;
+  /** Retained only to read snapshots written by the previous release. */
+  quoteAttributionStatus?: AttributionStatus;
+  quoteSpeaker?: string;
   quoteAuthor?: string;
   quoteWork?: string;
   quoteDynasty?: string;
+  quoteNote?: string;
   expReward?: number;
   rewardLabel?: string;
 }
 
 export interface LifeQuestState {
-  schemaVersion: 6;
+  schemaVersion: 8;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;

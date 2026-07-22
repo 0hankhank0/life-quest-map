@@ -9,7 +9,7 @@ describe("state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(6);
+    expect(migrated.schemaVersion).toBe(8);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
@@ -74,6 +74,17 @@ describe("state migration", () => {
     expect(migrated.adventureJournal).toHaveLength(1);
     expect(migrated.adventureJournal[0]).toMatchObject({ taskName: "散步", mood: "calm", quoteText: "城市沒有突然改變。" });
     expect(migrated.recentAdventureQuoteIds).toEqual(["city-2", "city-3", "city-4", "city-5"]);
+  });
+
+  it("migrates text-only journal quotes into known or explicitly unverified snapshots", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, adventureJournal: [
+      { id: "journal:known", taskId: "quest-1", taskName: "散步", completedAt: "2026-07-15T08:00:00.000Z", category: "exploration", quote: "為了更美好的明天而戰。" },
+      { id: "journal:unknown", taskId: "quest-2", taskName: "寫字", completedAt: "2026-07-15T09:00:00.000Z", category: "creation", quote: "舊資料自訂語錄" }
+    ] }, now);
+    expect(migrated.adventureJournal[0]).toMatchObject({ quoteId: "lol-jayce-better-tomorrow", quoteSpeaker: "杰西", quoteGame: "《英雄聯盟》", quoteSourceType: "game", quoteSourceStatus: "verified" });
+    expect(migrated.adventureJournal[1]).toMatchObject({ quoteText: "舊資料自訂語錄", quoteSourceType: "unknown", quoteSourceStatus: "likely" });
+    expect(migrateLifeQuestState(migrated, now).adventureJournal).toEqual(migrated.adventureJournal);
   });
 });
 
