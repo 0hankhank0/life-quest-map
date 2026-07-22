@@ -93,7 +93,7 @@ function normalizeAdventureJournal(value: unknown): AdventureJournalEntry[] {
   });
 }
 
-/** Converts any persisted state-shaped object into the complete v8 schema. */
+/** Converts any persisted state-shaped object into the complete v9 schema. */
 export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQuestState {
   const fallback = createInitialLifeQuestState();
   const source = isRecord(value) ? value : {};
@@ -145,10 +145,18 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
   const profile = isRecord(source.profile)
     ? { ...source.profile, lifeStage: source.profile.lifeStage ?? (source.profile.occupation === "student" || source.profile.role === "student" ? "student" : "adult"), studentStage: source.profile.studentStage ?? (source.profile.occupation === "student" || source.profile.role === "student" ? "university" : undefined), occupation: source.profile.occupation ?? "general", focus: source.profile.focus ?? (Array.isArray(source.profile.focuses) ? source.profile.focuses[0] : undefined) ?? "learning", focuses: Array.isArray(source.profile.focuses) && source.profile.focuses.length > 0 ? source.profile.focuses : [source.profile.focus ?? "learning"] }
     : null;
+  const sourceSettings = isRecord(source.userSettings) ? source.userSettings : null;
+  const tutorialCompletedAt = sourceSettings?.tutorialCompletedAt === null
+    ? null
+    : isDateString(sourceSettings?.tutorialCompletedAt)
+      ? sourceSettings.tutorialCompletedAt
+      : profile
+        ? now.toISOString()
+        : null;
 
   return {
     ...fallback,
-    schemaVersion: 8,
+    schemaVersion: 9,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },
@@ -168,7 +176,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     savedQuotes: normalizeSavedQuotes(source.savedQuotes),
     adventureJournal: normalizeAdventureJournal(source.adventureJournal),
     recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-4),
-    userSettings: { ...defaultUserSettings, ...(isRecord(source.userSettings) && (source.userSettings.theme === "system" || source.userSettings.theme === "dark") ? { theme: source.userSettings.theme } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.reducedMotion === "boolean" ? { reducedMotion: source.userSettings.reducedMotion } : {}), ...(isRecord(source.userSettings) && typeof source.userSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: source.userSettings.notificationsEnabled } : {}) }
+    userSettings: { ...defaultUserSettings, ...(sourceSettings && (sourceSettings.theme === "system" || sourceSettings.theme === "dark") ? { theme: sourceSettings.theme } : {}), ...(sourceSettings && typeof sourceSettings.reducedMotion === "boolean" ? { reducedMotion: sourceSettings.reducedMotion } : {}), ...(sourceSettings && typeof sourceSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: sourceSettings.notificationsEnabled } : {}), tutorialCompletedAt }
   };
 }
 

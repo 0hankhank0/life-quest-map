@@ -23,7 +23,8 @@ export const defaultStats: Stats = {
 export const defaultUserSettings: UserSettings = {
   theme: "system",
   reducedMotion: false,
-  notificationsEnabled: false
+  notificationsEnabled: false,
+  tutorialCompletedAt: null
 };
 
 export function createDemoQuests(now = new Date().toISOString()): Quest[] {
@@ -219,7 +220,7 @@ export const mapLocations: MapLocation[] = [
 
 export function createInitialLifeQuestState(): LifeQuestState {
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     profile: null,
     quests: createDemoQuests(),
     stats: { ...defaultStats },

@@ -19,7 +19,7 @@ import { getStrongestStat } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 
 export function ProfilePanel() {
-  const { state, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
+  const { state, restartBeginnerGuide, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
   const { showToast } = useToast();
   const profile = state.profile;
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +127,16 @@ export function ProfilePanel() {
           </div>
         </section>
       ) : null}
+
+      <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-zinc-50">使用指南</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-400">重新查看 Life Quest Map 的基本操作與冒險流程。</p>
+        </div>
+        <button type="button" onClick={restartBeginnerGuide} className="min-h-11 shrink-0 rounded-lg border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10 active:translate-y-px">
+          重新觀看新手教學
+        </button>
+      </section>
 
       <section className="game-card p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

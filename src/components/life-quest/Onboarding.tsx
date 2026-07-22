@@ -196,9 +196,7 @@ export function Onboarding() {
           <fieldset className="space-y-3">
             <legend className="text-sm font-bold text-zinc-200">玩家風格</legend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {roleOptions
-                .filter((option) => lifeStage === "adult" || option.value !== "athlete")
-                .map((option) => (
+              {roleOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -231,6 +229,11 @@ export function Onboarding() {
           </fieldset>
 
           {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
+
+          <div className="space-y-1 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-3 text-xs leading-5 text-zinc-300">
+            <p>不用設定完美，進入後會有簡短教學帶你完成第一個冒險。</p>
+            <p className="text-zinc-400">資料只保存在目前裝置，不會自動上傳；之後可在角色頁匯出備份。</p>
+          </div>
 
           <button
             type="submit"

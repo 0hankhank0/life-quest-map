@@ -9,11 +9,11 @@ describe("state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(8);
+    expect(migrated.schemaVersion).toBe(9);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
-    expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: false, notificationsEnabled: false });
+    expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: false, notificationsEnabled: false, tutorialCompletedAt: null });
     expect(migrated.savedQuotes).toEqual([]);
     expect(migrated.adventureJournal).toEqual([]);
     expect(migrated.recentAdventureQuoteIds).toEqual([]);
@@ -39,7 +39,7 @@ describe("state migration", () => {
     expect(migrated.quests).toHaveLength(state.quests.length);
     expect(migrated.stats).toEqual(state.stats);
     expect(migrated.favoriteAdventureIds).toEqual(["one"]);
-    expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: true, notificationsEnabled: false });
+    expect(migrated.userSettings).toEqual({ theme: "system", reducedMotion: true, notificationsEnabled: false, tutorialCompletedAt: null });
     expect(migrated.customMapLocations).toEqual([]);
   });
 
@@ -97,6 +97,39 @@ describe("state migration", () => {
     expect(migrated.adventureJournal[0]).toMatchObject({ quoteSourceType: "football", quoteSourceUrl: "https://inside.fifa.com/news/messi-its-the-team-that-counts" });
     expect(migrated.adventureJournal[1].quoteSourceUrl).toBeUndefined();
     expect(migrateLifeQuestState(migrated, now).adventureJournal).toEqual(migrated.adventureJournal);
+  });
+
+  it("starts new accounts with an unfinished beginner guide", () => {
+    const state = createInitialLifeQuestState();
+    expect(state.schemaVersion).toBe(9);
+    expect(state.userSettings.tutorialCompletedAt).toBeNull();
+  });
+
+  it("marks legacy users with a profile as having completed the guide", () => {
+    const state = createInitialLifeQuestState();
+    const profile = {
+      id: "legacy-hero", name: "Legacy", lifeStage: "adult" as const, role: "creator" as const,
+      occupation: "creator" as const, focus: "creativity" as const, focuses: ["creativity" as const],
+      level: 3, exp: 130, createdAt: "2026-07-01T08:00:00.000Z"
+    };
+    const migrated = migrateLifeQuestState({ ...state, schemaVersion: 8, profile, userSettings: { theme: "dark", reducedMotion: true, notificationsEnabled: true } }, now);
+    expect(migrated.userSettings).toEqual({ theme: "dark", reducedMotion: true, notificationsEnabled: true, tutorialCompletedAt: now.toISOString() });
+  });
+
+  it("keeps the guide unfinished for legacy data without a profile", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, schemaVersion: 8, profile: null, userSettings: { theme: "system", reducedMotion: false, notificationsEnabled: false } }, now);
+    expect(migrated.userSettings.tutorialCompletedAt).toBeNull();
+  });
+
+  it("preserves a saved guide timestamp and all unrelated persisted data", () => {
+    const state = createInitialLifeQuestState();
+    const completedAt = "2026-07-14T08:00:00.000Z";
+    const migrated = migrateLifeQuestState({ ...state, profile: { id: "hero", name: "Ava", lifeStage: "student", studentStage: "university", role: "athlete", occupation: "student", focus: "fitness", focuses: ["fitness"], level: 2, exp: 50, createdAt: completedAt }, userSettings: { theme: "dark", reducedMotion: true, notificationsEnabled: true, tutorialCompletedAt: completedAt }, favoriteAdventureIds: ["walk"], savedAdventureIds: ["read"], adventureJournal: [{ id: "journal:one", taskId: "quest-1", taskName: "散步", completedAt, category: "exploration", mood: "calm", quoteId: "city-4", quoteText: "城市沒有突然改變。", quoteSourceType: "original" }] }, now);
+    expect(migrated.userSettings).toEqual({ theme: "dark", reducedMotion: true, notificationsEnabled: true, tutorialCompletedAt: completedAt });
+    expect(migrated.favoriteAdventureIds).toEqual(["walk"]);
+    expect(migrated.savedAdventureIds).toEqual(["read"]);
+    expect(migrated.adventureJournal).toHaveLength(1);
   });
 });
 

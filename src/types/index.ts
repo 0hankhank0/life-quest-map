@@ -178,6 +178,7 @@ export interface UserSettings {
   theme: "system" | "dark";
   reducedMotion: boolean;
   notificationsEnabled: boolean;
+  tutorialCompletedAt: string | null;
 }
 
 export type QuoteCategory =
@@ -296,7 +297,7 @@ export interface AdventureJournalEntry {
 }
 
 export interface LifeQuestState {
-  schemaVersion: 8;
+  schemaVersion: 9;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
