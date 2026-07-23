@@ -11,6 +11,7 @@ import {
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
 import { useToast } from "@/components/ToastProvider";
+import { useAuth } from "@/components/AuthProvider";
 import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
 import { AdventureJournal } from "@/components/life-quest/AdventureJournal";
 import { PageHeader } from "@/components/PageHeader";
@@ -21,6 +22,7 @@ import { calendarDateKey } from "@/lib/utils";
 export function ProfilePanel() {
   const { state, restartBeginnerGuide, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
   const { showToast } = useToast();
+  const { user, guestMode, signOut, googleEnabled, facebookEnabled } = useAuth();
   const profile = state.profile;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [dataMessage, setDataMessage] = useState("");
@@ -105,6 +107,15 @@ export function ProfilePanel() {
         <button type="button" onClick={() => setHistoryOpen(true)} className="shrink-0 rounded-lg border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10 active:translate-y-px">
           開啟歷史
         </button>
+      </section>
+
+      <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black text-zinc-50">帳號與登入</h2>
+          {user ? <><p className="mt-1 truncate text-sm font-bold text-emerald-100">{String(user.user_metadata.full_name ?? user.user_metadata.name ?? profile.name)}</p><p className="mt-1 truncate text-sm text-zinc-400">{user.email}</p><p className="mt-2 text-xs text-zinc-500">登入方式：{user.app_metadata.provider === "facebook" ? "Facebook" : "Google"}</p></> : <p className="mt-1 text-sm leading-6 text-zinc-400">目前以訪客身分遊玩。遊戲資料仍只儲存在這台裝置。</p>}
+          {!user ? <p className="mt-2 text-xs text-zinc-500">Google：{googleEnabled ? "可用" : "未啟用"}；Facebook：{facebookEnabled ? "可用" : "未啟用"}</p> : null}
+        </div>
+        {user || guestMode ? <button type="button" onClick={() => void signOut().then(() => showToast("已登出。你的本機遊戲進度已保留。", "success")).catch(() => showToast("登出失敗，請再試一次。", "error"))} className="min-h-11 shrink-0 rounded-lg border border-red-300/20 px-4 py-3 text-sm font-bold text-red-100 transition hover:border-red-300/50">登出帳號</button> : null}
       </section>
 
       <AdventureJournal />

@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.8",
     "leaflet": "^1.9.4",
     "next": "^15.5.6",
     "react": "^19.1.0",

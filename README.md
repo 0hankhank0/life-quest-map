@@ -1,5 +1,9 @@
 # Life Quest Map v0.2
 
+## Authentication
+
+Google/Facebook sign-in is optional. See [docs/AUTH_SETUP.md](docs/AUTH_SETUP.md) for Supabase environment variables and OAuth redirect setup. Without those variables, users can continue in local guest mode.
+
 一個以深色 emerald RPG 視覺呈現的個人生活任務、微冒險與探索地圖工具。
 
 ## 功能

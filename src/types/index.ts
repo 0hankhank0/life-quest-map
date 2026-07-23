@@ -198,7 +198,13 @@ export type CityEchoCategory =
   | "creation"
   | "daily";
 
-export type AdventureQuoteSourceType = "movie" | "game" | "proPlayer" | "football" | "athlete" | "proverb" | "original" | "public_domain";
+export type QuoteIntent =
+  | "small_step" | "progress" | "learning" | "discipline" | "focus"
+  | "creation" | "exploration" | "awareness" | "rest" | "fitness"
+  | "courage" | "resilience" | "failure" | "dream" | "self_belief"
+  | "change" | "connection" | "teamwork" | "reflection";
+
+export type AdventureQuoteSourceType = "movie" | "game" | "proPlayer" | "football" | "athlete" | "proverb" | "published" | "original" | "public_domain";
 
 /** Includes retired values so existing LocalStorage journal snapshots remain readable. */
 export type QuoteSourceType = AdventureQuoteSourceType
@@ -233,6 +239,9 @@ export interface AdventureQuote {
   note?: string;
   categories: CityEchoCategory[];
   tags?: string[];
+  intents?: QuoteIntent[];
+  avoidIntents?: QuoteIntent[];
+  specificity?: "neutral" | "specific";
   enabled: boolean;
   weight?: number;
 }
@@ -297,7 +306,7 @@ export interface AdventureJournalEntry {
 }
 
 export interface LifeQuestState {
-  schemaVersion: 9;
+  schemaVersion: 10;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;

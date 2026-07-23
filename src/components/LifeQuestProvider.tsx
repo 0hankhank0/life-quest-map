@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { STORAGE_KEY, createDefaultAchievements, createDemoQuests, createInitialLifeQuestState, defaultStats } from "@/data/defaults";
 import { getOccupationQuestPack } from "@/data/questPacks";
-import { inferCityEchoCategory, pickAdventureQuote } from "@/data/adventureQuotes";
+import { pickAdventureQuoteForQuest } from "@/data/adventureQuotes";
+import { microAdventures } from "@/data/microAdventures";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { appendRecommendationHistory, toggleUniqueId } from "@/lib/adventurePreferences";
 import { addQuest, addQuestPack, completeMapLocation as completeMapLocationOperation, completeMicroAdventure as completeMicroAdventureOperation, completeQuest as completeQuestOperation, deleteQuest as deleteQuestOperation, updateQuest as updateQuestOperation } from "@/lib/questOperations";
@@ -29,11 +30,10 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const [state, setState, isHydrated] = useLocalStorage(STORAGE_KEY, createInitial, migrateLifeQuestState);
   const [completionFeedback, setCompletionFeedback] = useState<CompletionFeedback | null>(null);
   const handledFeedbackEventIds = useRef(new Set<string>());
-  const showFeedback = useCallback((eventId: string, quest: Quest, canSaveJournal = true, rewardLabel?: string) => {
+  const showFeedback = useCallback((eventId: string, quest: Quest, canSaveJournal = true, rewardLabel?: string, tags: readonly string[] = []) => {
     if (handledFeedbackEventIds.current.has(eventId)) return;
     handledFeedbackEventIds.current.add(eventId);
-    const category = inferCityEchoCategory(quest);
-    const quote = pickAdventureQuote(category, state.recentAdventureQuoteIds);
+    const { category, quote } = pickAdventureQuoteForQuest(quest, state.recentAdventureQuoteIds, { tags });
     setState((current) => ({ ...current, recentAdventureQuoteIds: [...current.recentAdventureQuoteIds, quote.id].slice(-4) }));
     setCompletionFeedback({ eventId, quote, taskId: quest.id, taskName: quest.title, completedAt: quest.completedAt ?? new Date().toISOString(), category, questCategory: quest.category, expReward: quest.expReward, rewardLabel, canSaveJournal });
   }, [setState, state.recentAdventureQuoteIds]);
@@ -43,7 +43,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const updateQuest = useCallback((id: string, draft: QuestDraft) => setState((current) => updateQuestOperation(current, id, draft)), [setState]);
   const deleteQuest = useCallback((id: string) => setState((current) => deleteQuestOperation(current, id)), [setState]);
   const completeQuest = useCallback((id: string) => { const quest = state.quests.find((item) => item.id === id); if (!quest || quest.status === "completed") return; const next = completeQuestOperation(state, id); setState(next); const completed = next.quests.find((item) => item.id === id); if (completed) showFeedback(`quest:${id}:${completed.completedAt}`, completed, true, `+1 ${categoryLabels[completed.category]}`); }, [setState, showFeedback, state]);
-  const completeMicroAdventure = useCallback((adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => { const next = completeMicroAdventureOperation(state, adventureId, draft, note, mood); if (next === state) return; setState(next); const completed = next.quests.find((quest) => quest.status === "completed" && quest.title === draft.title && quest.completedAt && !state.quests.some((previous) => previous.id === quest.id)); if (completed) showFeedback(`micro:${completed.id}`, completed, true, `+1 ${categoryLabels[completed.category]}`); }, [setState, showFeedback, state]);
+  const completeMicroAdventure = useCallback((adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => { const next = completeMicroAdventureOperation(state, adventureId, draft, note, mood); if (next === state) return; setState(next); const completed = next.quests.find((quest) => quest.status === "completed" && quest.title === draft.title && quest.completedAt && !state.quests.some((previous) => previous.id === quest.id)); const adventure = microAdventures.find((item) => item.id === adventureId); if (completed) showFeedback(`micro:${completed.id}`, completed, true, `+1 ${categoryLabels[completed.category]}`, adventure ? [...adventure.moods, ...adventure.times] : []); }, [setState, showFeedback, state]);
   const updateAdventureIds = useCallback((field: "favoriteAdventureIds" | "savedAdventureIds", id: string, action: "favorite" | "saved") => setState((current) => ({ ...current, [field]: toggleUniqueId(current[field], id), recommendationHistory: appendRecommendationHistory(current.recommendationHistory, id, action) })), [setState]);
   const toggleFavoriteAdventure = useCallback((id: string) => updateAdventureIds("favoriteAdventureIds", id, "favorite"), [updateAdventureIds]);
   const toggleSavedAdventure = useCallback((id: string) => updateAdventureIds("savedAdventureIds", id, "saved"), [updateAdventureIds]);

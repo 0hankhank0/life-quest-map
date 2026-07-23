@@ -1,4 +1,4 @@
-import type { AdventureQuote, CityEchoCategory, Quest, QuestCategory } from "@/types";
+import type { AdventureQuote, CityEchoCategory, Quest, QuestCategory, QuoteIntent } from "@/types";
 
 export const cityEchoCategoryLabels: Record<CityEchoCategory, string> = {
   exploration: "探索的回聲", connection: "相遇的回聲", rest: "休息的回聲", awareness: "察覺的回聲",
@@ -66,6 +66,32 @@ export const adventureQuotes: AdventureQuote[] = [
   external({ id: "football-messi-fight-everything", text: "我們必須永遠為所有冠軍而戰。", speaker: "梅西", sourceType: "football", sourceTitle: "巴塞隆納官方訪談", sourceStatus: "verified", note: "中譯", sourceUrl: "https://www.fcbarcelona.com/en/news/759155/leo-messi-we-want-to-win-everything-always/amp", tags: ["奮鬥", "目標", "勝利"], enabled: true }, ["courage", "daily"]),
   external({ id: "athlete-jeter-keep-pushing", text: "不要放棄；穿過失敗，夢想才有機會成真。", speaker: "Derek Jeter", sourceType: "athlete", sourceTitle: "The Players’ Tribune", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.theplayerstribune.com/posts/derek-jeter-letter-to-my-younger-self-new-york-yankees-mlb-baseball", tags: ["失敗", "堅持", "夢想"], enabled: true }, ["courage", "daily"]),
   external({ id: "proverb-dreams-greatness", text: "人因夢想而偉大。", author: "佚名", sourceType: "proverb", sourceTitle: "現代流傳格言", sourceStatus: "unverified", note: "常被誤標為名人語錄，目前缺少可靠原始出處", tags: ["夢想", "偉大", "志向"], enabled: true }, ["courage", "daily"]),
+  external({ id: "anime-demonslayer-rengoku-heart", text: "讓你的心燃燒起來。", speaker: "煉獄杏壽郎", work: "鬼滅之刃", sourceType: "movie", sourceTitle: "《鬼滅之刃》單行本第 8 卷", sourceStatus: "verified", note: "通行繁中譯；短句台詞", sourceUrl: "https://www.shueisha.co.jp/books/items/contents.html?isbn=978-4-08-881799-0", tags: ["重新振作", "勇氣", "困難"], intents: ["courage", "resilience"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  external({ id: "anime-onepiece-teach-dream", text: "人的夢想，是不會終結的。", speaker: "馬歇爾・D・汀奇", work: "ONE PIECE", sourceType: "movie", sourceTitle: "《ONE PIECE》單行本第 24 卷", sourceStatus: "verified", note: "通行繁中譯；短句台詞", sourceUrl: "https://www.shueisha.co.jp/books/items/contents.html?isbn=978-4-08-873213-2", tags: ["夢想", "長期目標", "堅持"], intents: ["dream", "resilience"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  external({ id: "anime-myhero-plus-ultra", text: "向更遠的地方前進——PLUS ULTRA！", sourceType: "movie", sourceTitle: "《我的英雄學院》作品標語", sourceStatus: "verified", note: "官方宣傳語，不歸屬單一角色", sourceUrl: "https://heroaca.com/", tags: ["突破", "升級", "前進"], intents: ["progress", "courage"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  external({ id: "football-messi-dream-came-true", text: "我一直追尋的夢想，終於成真。", speaker: "梅西", sourceType: "football", sourceTitle: "FIFA：Messi: I won't forget year dreams came true", sourceStatus: "verified", note: "中文意譯", sourceUrl: "https://www.fifa.com/en/articles/messi-i-wont-forget-year-dreams-came-true-world-cup-winner-psg-barcelona-thanks-fans", tags: ["夢想", "完成", "長期目標"], intents: ["dream", "progress"], avoidIntents: ["failure"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  external({ id: "football-irankunda-head-down-work", text: "低下頭，專心工作；努力之後，回報自然會出現。", speaker: "內斯托里・伊蘭昆達", sourceType: "football", sourceTitle: "FIFA 專訪", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/nestory-irankunda-australia-feature", tags: ["專注", "努力", "訓練"], intents: ["discipline", "focus", "progress"], specificity: "specific", enabled: true }, ["daily", "courage"]),
+  external({ id: "football-terceros-hard-work-pays", text: "我們投入的努力，終究會得到回報。", speaker: "米格爾・特爾塞羅斯", sourceType: "football", sourceTitle: "FIFA 專訪", sourceStatus: "paraphrase", note: "中文意譯", sourceUrl: "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/miguel-terceros-bolivia-interview", tags: ["努力", "累積", "團隊"], intents: ["discipline", "progress", "teamwork"], specificity: "specific", enabled: true }, ["daily", "connection"]),
+  external({ id: "football-messi-group-dream", text: "這份榮耀屬於為同一個夢想奮鬥的每一個人。", speaker: "梅西", sourceType: "football", sourceTitle: "FIFA：Messi celebration is most-liked Instagram post", sourceStatus: "paraphrase", note: "中文意譯，依原文「所有人為同一個夢想而戰的力量」濃縮", sourceUrl: "https://www.fifa.com/en/articles/world-cup-2022-qatar-messi-celebration-argentina-france", tags: ["團隊", "夢想", "榮耀"], intents: ["teamwork", "connection", "dream"], specificity: "specific", enabled: true }, ["connection", "courage"]),
+  external({ id: "science-armstrong-giant-leap", text: "這是個人的一小步，卻是人類的一大步。", speaker: "尼爾・阿姆斯壯", work: "阿波羅 11 號登月通訊", sourceType: "published", sourceTitle: "NASA 阿波羅 11 號逐字稿", sourceStatus: "verified", note: "通行翻譯", sourceUrl: "https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/a11.step.html", tags: ["開始", "探索", "里程碑"], intents: ["exploration", "progress", "courage"], specificity: "specific", enabled: true }, ["exploration", "courage"]),
+  external({ id: "science-curie-fear-understand", text: "生命中沒有什麼可怕的，只有需要理解的事。", speaker: "瑪麗・居禮", work: "訪談引文（1903）", sourceType: "published", sourceTitle: "Nobel Prize：Marie Curie facts", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/", tags: ["學習", "未知", "勇氣"], intents: ["learning", "courage", "self_belief"], specificity: "specific", enabled: true }, ["courage", "awareness"]),
+  external({ id: "science-lovelace-engine-no-pretensions", text: "分析機沒有創造任何事物的企圖。", speaker: "愛達・洛夫萊斯", work: "Notes on the Analytical Engine", sourceType: "published", sourceTitle: "《科學回憶錄》第 3 卷（1843）", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://www.fourmilab.ch/babbage/sketch.html", tags: ["學習", "創作", "思考"], intents: ["learning", "creation", "awareness"], specificity: "specific", enabled: true }, ["creation", "awareness"]),
+  external({ id: "science-goodall-difference", text: "你所做的事會帶來改變；你要決定帶來哪一種改變。", speaker: "珍・古德", work: "Jane Goodall Institute 引文", sourceType: "published", sourceTitle: "Jane Goodall Institute", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://janegoodall.org/news/eatmeatless-for-people-other-animals-and-the-environment/", tags: ["行動", "選擇", "影響"], intents: ["courage", "progress", "awareness"], specificity: "specific", enabled: true }, ["daily", "courage"]),
+  external({ id: "literature-tennyson-strive-seek", text: "奮鬥、追尋、發現，永不屈服。", speaker: "阿爾弗雷德・丁尼生", work: "Ulysses", sourceType: "published", sourceTitle: "《Ulysses》（1842）", sourceStatus: "verified", note: "專案翻譯；公共領域原作", sourceUrl: "https://www.poetryfoundation.org/poems/45392/ulysses", tags: ["探索", "堅持", "遠方"], intents: ["exploration", "resilience", "courage"], specificity: "specific", enabled: true }, ["exploration", "courage"]),
+  external({ id: "literature-shakespeare-breach", text: "再一次，衝向缺口，親愛的朋友們。", speaker: "威廉・莎士比亞", work: "亨利五世", sourceType: "published", sourceTitle: "Folger Shakespeare Library：Henry V", sourceStatus: "verified", note: "專案翻譯；公共領域原作", sourceUrl: "https://www.folger.edu/explore/shakespeares-works/henry-v/read/", tags: ["勇氣", "挑戰", "團隊"], intents: ["courage", "teamwork"], specificity: "specific", enabled: true }, ["courage", "connection"]),
+  external({ id: "literature-dickinson-forever-nows", text: "永恆由許多當下組成。", speaker: "艾蜜莉・狄金生", work: "Poem 624", sourceType: "published", sourceTitle: "《Poems by Emily Dickinson》", sourceStatus: "verified", note: "專案翻譯；公共領域原作", sourceUrl: "https://www.poetryfoundation.org/poems/52197/forever-is-composed-of-nows-624", tags: ["當下", "時間", "覺察"], intents: ["awareness", "reflection"], specificity: "specific", enabled: true }, ["awareness", "daily"]),
+  external({ id: "literature-frost-way-out", text: "最好的出路，往往就是穿越。", speaker: "羅伯特・佛洛斯特", work: "A Servant to Servants", sourceType: "published", sourceTitle: "《North of Boston》（1914）", sourceStatus: "verified", note: "專案翻譯；原作依地區可能仍受保護，僅收錄短句", sourceUrl: "https://www.poetryfoundation.org/poems/44262/a-servant-to-servants", tags: ["困境", "穿越", "重試"], intents: ["resilience", "failure", "courage"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  publicDomain("philosophy-laozi-thousand-miles", "千里之行，始於足下。", "老子", "道德經・第六十四章", "先秦", ["exploration", "daily"], ["開始", "小步", "旅程"]),
+  publicDomain("philosophy-xunzi-small-steps", "不積跬步，無以至千里；不積小流，無以成江海。", "荀子", "勸學", "戰國", ["daily", "courage"], ["累積", "習慣", "堅持"]),
+  external({ id: "philosophy-aurelius-obstacle-way", text: "行動的阻礙，反而推動行動；擋路的，成了路。", speaker: "馬可・奧理略", work: "沉思錄・第五卷", sourceType: "published", sourceTitle: "《Meditations》George Long 譯本", sourceStatus: "verified", note: "專案翻譯；公共領域英譯本", sourceUrl: "https://www.gutenberg.org/ebooks/2680", tags: ["阻礙", "重試", "韌性"], intents: ["resilience", "failure", "courage"], specificity: "specific", enabled: true }, ["courage", "daily"]),
+  external({ id: "philosophy-seneca-life-speeds", text: "當我們一再拖延，生命便加速流逝。", speaker: "塞內卡", work: "道德書信集・第一封", sourceType: "published", sourceTitle: "《Moral Letters to Lucilius》", sourceStatus: "verified", note: "專案翻譯；公共領域英譯本", sourceUrl: "https://www.gutenberg.org/ebooks/66020", tags: ["開始", "時間", "行動"], intents: ["discipline", "small_step", "courage"], specificity: "specific", enabled: true }, ["daily", "awareness"]),
+  external({ id: "creator-jobs-stay-hungry", text: "保持飢渴，保持愚笨。", speaker: "史蒂夫・賈伯斯", work: "史丹佛大學畢業演講（2005）", sourceType: "published", sourceTitle: "Stanford Report", sourceStatus: "verified", note: "通行翻譯", sourceUrl: "https://news.stanford.edu/stories/2005/06/steve-jobs-2005-graduates-stay-hungry-stay-foolish", tags: ["探索", "學習", "創作"], intents: ["learning", "exploration", "creation"], specificity: "specific", enabled: true }, ["creation", "exploration"]),
+  external({ id: "creator-jobs-limited-time", text: "你的時間有限，不要活成別人的人生。", speaker: "史蒂夫・賈伯斯", work: "史丹佛大學畢業演講（2005）", sourceType: "published", sourceTitle: "Stanford Report", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://news.stanford.edu/stories/2005/06/youve-got-find-love-jobs-says", tags: ["選擇", "人生", "勇氣"], intents: ["courage", "self_belief", "awareness"], specificity: "specific", enabled: true }, ["courage", "awareness"]),
+  external({ id: "creator-rams-less-better", text: "更少，但更好。", speaker: "迪特・拉姆斯", work: "好設計十原則", sourceType: "published", sourceTitle: "Vitsœ：Good design", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://www.vitsoe.com/us/about/good-design", tags: ["設計", "專注", "本質"], intents: ["creation", "focus", "discipline"], specificity: "specific", enabled: true }, ["creation", "daily"]),
+  external({ id: "creator-eames-design-plan", text: "設計，是把元素安排到最好位置的計畫。", speaker: "查爾斯・伊姆斯", work: "What Is Design?", sourceType: "published", sourceTitle: "《What Is Design?》（1972）", sourceStatus: "verified", note: "專案翻譯", sourceUrl: "https://www.eamesoffice.com/the-work/what-is-design/", tags: ["設計", "計畫", "創作"], intents: ["creation", "focus", "progress"], specificity: "specific", enabled: true }, ["creation", "daily"]),
+  external({ id: "game-zelda-courage-never-forgotten", text: "勇氣不必被記得，因為它從未被遺忘。", speaker: "薩爾達", work: "薩爾達傳說 曠野之息", sourceType: "game", sourceTitle: "《薩爾達傳說 曠野之息》", game: "《薩爾達傳說 曠野之息》", sourceStatus: "verified", note: "專案翻譯；短句角色台詞", sourceUrl: "https://www.nintendo.com/store/products/the-legend-of-zelda-breath-of-the-wild-switch/", tags: ["勇氣", "冒險", "記憶"], intents: ["courage", "exploration"], specificity: "specific", enabled: true }, ["courage", "exploration"]),
+  external({ id: "game-ffxiv-for-those-lost", text: "為我們所失去的人；為我們仍能拯救的人。", sourceType: "game", sourceTitle: "《FINAL FANTASY XIV》作品標語", game: "《FINAL FANTASY XIV》", sourceStatus: "verified", note: "官方宣傳語，不歸屬角色；專案翻譯", sourceUrl: "https://na.finalfantasyxiv.com/endwalker/", tags: ["希望", "團隊", "前進"], intents: ["teamwork", "resilience", "courage"], specificity: "specific", enabled: true }, ["connection", "courage"]),
+  external({ id: "game-valorant-defy-limits", text: "突破極限。", sourceType: "game", sourceTitle: "《特戰英豪》官方宣傳語", game: "《特戰英豪》", sourceStatus: "verified", note: "官方宣傳語，不歸屬角色；專案翻譯", sourceUrl: "https://playvalorant.com/", tags: ["突破", "挑戰", "升級"], intents: ["courage", "progress"], specificity: "specific", enabled: true }, ["courage", "daily"]),
   original("original-dream-depart-arrive", "人因夢想而出發，也因努力而抵達。", ["courage", "daily"], ["夢想", "努力", "抵達"]),
   original("original-quest-becoming", "真正重要的，不只是完成任務，而是你成為了怎樣的人。", ["daily", "awareness"], ["任務", "成長", "自我"]),
   original("original-slow-still-forward", "走得慢沒有關係，只要今天的你仍在前進。", ["rest", "courage"], ["節奏", "前進", "堅持"]),
@@ -100,4 +126,51 @@ export function pickAdventureQuote(category: CityEchoCategory, recentIds: readon
   const candidates = matching.length ? matching : fallback.length ? fallback : enabled;
   const fresh = candidates.filter((quote) => !recentIds.includes(quote.id));
   return weightedPick(fresh.length ? fresh : candidates, random);
+}
+
+const categoryIntents: Record<CityEchoCategory, QuoteIntent[]> = {
+  exploration: ["exploration", "awareness"], connection: ["connection"], rest: ["rest", "reflection", "fitness"],
+  awareness: ["awareness", "reflection"], courage: ["courage", "progress"], creation: ["creation", "progress"],
+  daily: ["small_step", "discipline", "progress"]
+};
+const intentKeywords: Array<[QuoteIntent, RegExp]> = [
+  ["learning", /學|讀|研究|課|learn|read/i], ["focus", /專注|整理|focus/i],
+  ["fitness", /運動|走|跑|伸展|健康|fitness|walk/i], ["rest", /休息|放鬆|睡|呼吸|茶|rest/i],
+  ["creation", /創作|畫|寫|拍|設計|create/i], ["exploration", /探索|新地方|路線|地圖|explor/i],
+  ["connection", /朋友|家人|聊天|陪伴|一起|訊息|team|friend/i], ["teamwork", /團隊|合作|一起|team/i],
+  ["failure", /失敗|挫折|跌倒|fail/i], ["resilience", /重來|堅持|撐|resilien/i], ["dream", /夢想|dream/i],
+  ["self_belief", /相信自己|信念|believe/i], ["awareness", /觀察|看見|感受|天空|聲音|awareness/i]
+];
+
+// Older catalog entries are enriched at load time, preserving their IDs and text for saved journals.
+for (const quote of adventureQuotes) {
+  const text = `${quote.text} ${(quote.tags ?? []).join(" ")}`;
+  const inferred = intentKeywords.filter(([, pattern]) => pattern.test(text)).map(([intent]) => intent);
+  quote.intents = quote.intents?.length ? quote.intents : [...new Set([...quote.categories.flatMap((category) => categoryIntents[category]), ...inferred])];
+  quote.specificity ??= inferred.length ? "specific" : "neutral";
+}
+
+export function inferQuestIntents(quest: Pick<Quest, "title" | "description" | "category" | "type">, tags: readonly string[] = []): QuoteIntent[] {
+  const text = `${quest.title} ${quest.description} ${tags.join(" ")}`;
+  const intents = intentKeywords.filter(([, pattern]) => pattern.test(text)).map(([intent]) => intent);
+  if (quest.type === "map") intents.push("exploration", "awareness");
+  // A concrete action should outweigh the broad legacy category; category is the neutral fallback.
+  if (intents.length === 0) intents.push(...categoryIntents[categoryMap[quest.category] ?? "daily"]);
+  return [...new Set(intents)];
+}
+
+export function scoreAdventureQuote(quote: AdventureQuote, context: { category: CityEchoCategory; intents: readonly QuoteIntent[]; text: string }): number {
+  const matches = context.intents.filter((intent) => quote.intents?.includes(intent)).length;
+  const conflicts = (quote.avoidIntents ?? []).filter((intent) => context.intents.includes(intent)).length;
+  return (quote.categories.includes(context.category) ? 4 : 0) + matches * 5 + (quote.specificity === "specific" && matches ? 2 : quote.specificity === "neutral" ? 1 : 0) - conflicts * 12;
+}
+
+export function pickAdventureQuoteForQuest(quest: Pick<Quest, "title" | "description" | "category" | "type">, recentIds: readonly string[] = [], options: { tags?: readonly string[]; random?: () => number } = {}): { quote: AdventureQuote; category: CityEchoCategory } {
+  const category = inferCityEchoCategory(quest, options.tags);
+  const intents = inferQuestIntents(quest, options.tags);
+  const scored = adventureQuotes.filter((quote) => quote.enabled !== false).map((quote) => ({ quote, score: scoreAdventureQuote(quote, { category, intents, text: `${quest.title} ${quest.description}` }) }));
+  const highest = Math.max(...scored.map((item) => item.score));
+  const candidates = scored.filter((item) => item.score === highest).map((item) => item.quote);
+  const fresh = candidates.filter((quote) => !recentIds.includes(quote.id));
+  return { quote: weightedPick(fresh.length ? fresh : candidates, options.random ?? Math.random), category };
 }

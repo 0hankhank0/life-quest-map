@@ -19,7 +19,7 @@ const recommendationActions = new Set(["shown", "favorite", "saved", "dismissed"
 const quoteCategories = new Set(["main-quest", "level-up", "skill-up", "streak", "achievement", "location"]);
 const cityEchoCategories = new Set<CityEchoCategory>(["exploration", "connection", "rest", "awareness", "courage", "creation", "daily"]);
 const completionMoods = new Set<CompletionMood>(["relaxed", "happy", "surprised", "discovered", "calm", "unchanged"]);
-const quoteSourceTypes = new Set<QuoteSourceType>(["movie", "game", "proPlayer", "football", "athlete", "proverb", "original", "public_domain", "game-character", "game-skin", "esports-player", "user", "licensed", "unknown"]);
+const quoteSourceTypes = new Set<QuoteSourceType>(["movie", "game", "proPlayer", "football", "athlete", "proverb", "published", "original", "public_domain", "game-character", "game-skin", "esports-player", "user", "licensed", "unknown"]);
 const attributionStatuses = new Set<AttributionStatus>(["verified", "source-known", "unverified"]);
 const quoteSourceStatuses = new Set<AdventureQuoteSourceStatus>(["verified", "likely", "paraphrase", "unverified", "original"]);
 const uniqueIds = (items: unknown): string[] =>
@@ -156,7 +156,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 9,
+    schemaVersion: 10,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },

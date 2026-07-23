@@ -3,7 +3,7 @@ import * as ts from "typescript";
 
 const quotesSource = fs.readFileSync("src/data/adventureQuotes.ts", "utf8");
 const adventuresSource = fs.readFileSync("src/data/microAdventures.ts", "utf8");
-const allowedSourceTypes = new Set(["movie", "game", "proPlayer", "football", "athlete", "proverb", "original", "public_domain"]);
+const allowedSourceTypes = new Set(["movie", "game", "proPlayer", "football", "athlete", "proverb", "published", "original", "public_domain"]);
 const sourceTypesRequiringSpeaker = new Set(["game", "proPlayer", "football", "athlete"]);
 const failures = [];
 const entries = [];
@@ -23,7 +23,7 @@ function visit(node) {
     }
     if (helper === "external" && ts.isObjectLiteralExpression(node.arguments[0])) {
       const object = node.arguments[0];
-      entries.push({ id: propertyValue(object, "id"), text: propertyValue(object, "text"), sourceType: propertyValue(object, "sourceType"), sourceStatus: propertyValue(object, "sourceStatus"), speaker: propertyValue(object, "speaker"), sourceTitle: propertyValue(object, "sourceTitle"), sourceUrl: propertyValue(object, "sourceUrl") });
+      entries.push({ id: propertyValue(object, "id"), text: propertyValue(object, "text"), sourceType: propertyValue(object, "sourceType"), sourceStatus: propertyValue(object, "sourceStatus"), speaker: propertyValue(object, "speaker"), note: propertyValue(object, "note"), sourceTitle: propertyValue(object, "sourceTitle"), sourceUrl: propertyValue(object, "sourceUrl") });
     }
   }
   ts.forEachChild(node, visit);
@@ -34,7 +34,7 @@ for (const entry of entries) {
   if (!entry.id?.trim() || !entry.text?.trim()) failures.push("語錄 ID 或文字不可為空白");
   if (!allowedSourceTypes.has(entry.sourceType)) failures.push(`不允許的語錄來源：${entry.sourceType ?? "未指定"}`);
   if (!entry.sourceStatus) failures.push(`語錄缺少來源狀態：${entry.id}`);
-  if (sourceTypesRequiringSpeaker.has(entry.sourceType) && !entry.speaker?.trim()) failures.push(`語錄缺少說話者：${entry.id}`);
+  if (sourceTypesRequiringSpeaker.has(entry.sourceType) && !entry.speaker?.trim() && !entry.note?.includes("官方宣傳語")) failures.push(`語錄缺少說話者：${entry.id}`);
   if ((entry.sourceType === "football" || entry.sourceType === "athlete") && (!entry.sourceTitle?.trim() || !entry.sourceUrl?.trim())) failures.push(`現代運動語錄缺少來源標題或 URL：${entry.id}`);
   if (entry.sourceUrl !== undefined && !entry.sourceUrl.trim()) failures.push(`語錄來源 URL 不可為空白：${entry.id}`);
   if (entry.sourceType === "proverb" && entry.sourceStatus !== "unverified") failures.push(`流傳格言必須標示為 unverified：${entry.id}`);

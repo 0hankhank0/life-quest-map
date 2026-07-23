@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, MapPin } from "@phosphor-icons/react";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
+import { useAuth } from "@/components/AuthProvider";
 import { mapLocations } from "@/data/defaults";
 import {
   focusOptions,
@@ -21,7 +22,8 @@ import type {
 
 export function Onboarding() {
   const { onboard } = useLifeQuest();
-  const [name, setName] = useState("");
+  const { user } = useAuth();
+  const [name, setName] = useState(() => String(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ""));
   const [lifeStage, setLifeStage] = useState<LifeStage>("student");
   const [studentStage, setStudentStage] = useState<StudentStage>("senior_high");
   const [role, setRole] = useState<Role>("student");
@@ -68,6 +70,7 @@ export function Onboarding() {
 
   return (
     <main className="min-h-[100dvh] bg-zinc-950 px-4 py-6 text-zinc-100 sm:px-6">
+      {user ? <p className="mx-auto mb-3 max-w-5xl rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">已使用 {user.app_metadata.provider === "facebook" ? "Facebook" : "Google"} 登入：{user.email}</p> : null}
       <div className="mx-auto grid min-h-[calc(100dvh-3rem)] max-w-5xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="space-y-5">
           <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100">

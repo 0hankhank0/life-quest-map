@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { adventureQuotes, inferCityEchoCategory, pickAdventureQuote } from "@/data/adventureQuotes";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { adventureQuotes, inferCityEchoCategory, inferQuestIntents, pickAdventureQuote, pickAdventureQuoteForQuest, scoreAdventureQuote } from "@/data/adventureQuotes";
 import { formatAdventureQuoteAttribution } from "@/lib/adventureQuoteAttribution";
 
 const baseQuest = { title: "一般任務", description: "", category: "discipline" as const, type: "daily" as const };
@@ -20,6 +22,14 @@ describe("city echo selection", () => {
     const quote = pickAdventureQuote("connection", ["city-10", "city-14", "pd-sushi-1"], () => 0);
     expect(quote.categories).toContain("connection");
   });
+
+  it("uses task intents to prefer a relevant city echo over only the legacy category", () => {
+    const quest = { ...baseQuest, title: "Take a walk and stretch", description: "A small fitness reset", category: "discipline" as const };
+    const result = pickAdventureQuoteForQuest(quest, [], { random: () => 0 });
+    expect(inferQuestIntents(quest)).toContain("fitness");
+    expect(result.quote.intents).toContain("fitness");
+    expect(scoreAdventureQuote(result.quote, { category: result.category, intents: inferQuestIntents(quest), text: quest.title })).toBeGreaterThan(0);
+  });
 });
 
 describe("adventure quote attributions", () => {
@@ -32,12 +42,44 @@ describe("adventure quote attributions", () => {
     expect(adventureQuotes.every((quote) => Boolean(quote.sourceType && quote.sourceStatus))).toBe(true);
   });
 
+  it("enriches every enabled quote with matching intents and a specificity", () => {
+    expect(adventureQuotes.filter((quote) => quote.enabled).every((quote) => quote.intents?.length && quote.specificity)).toBe(true);
+  });
+
   it("keeps quote IDs and exact quote text unique", () => {
     expect(new Set(adventureQuotes.map((quote) => quote.text)).size).toBe(adventureQuotes.length);
   });
 
-  it("requires named speakers for game and pro player quotations", () => {
-    expect(adventureQuotes.filter((quote) => quote.sourceType === "game" || quote.sourceType === "proPlayer").every((quote) => Boolean(quote.speaker))).toBe(true);
+  it("keeps categories, sources, text lengths, and normalized text unique", () => {
+    const categories = new Set(["exploration", "connection", "rest", "awareness", "courage", "creation", "daily"]);
+    const normalize = (text: string) => text.replace(/[\s\p{P}]/gu, "");
+    expect(adventureQuotes.every((quote) => quote.categories.length > 0 && quote.categories.every((category) => categories.has(category)))).toBe(true);
+    expect(adventureQuotes.every((quote) => Boolean(quote.speaker || quote.author || quote.sourceTitle))).toBe(true);
+    expect(adventureQuotes.every((quote) => [...quote.text].length <= 64)).toBe(true);
+    expect(new Set(adventureQuotes.map((quote) => normalize(quote.text))).size).toBe(adventureQuotes.length);
+  });
+
+  it("keeps every newly added quote source documented and selectable", () => {
+    const addedIds = adventureQuotes.filter((quote) => /^(anime|science|literature|philosophy|creator|game-|football-(messi-dream|irankunda|terceros|messi-group))/.test(quote.id)).map((quote) => quote.id);
+    const sources = readFileSync(resolve(process.cwd(), "docs/QUOTE_SOURCES.md"), "utf8");
+    expect(addedIds).toHaveLength(26);
+    expect(addedIds.every((id) => sources.includes(`\`${id}\``))).toBe(true);
+    for (const id of addedIds) {
+      const expected = adventureQuotes.find((quote) => quote.id === id)!;
+      expect(pickAdventureQuote(expected.categories[0], adventureQuotes.filter((quote) => quote.id !== id).map((quote) => quote.id), () => 0).id).toBe(id);
+    }
+  });
+
+  it("balances the added catalog across the requested fields", () => {
+    const added = adventureQuotes.filter((quote) => /^(anime|science|literature|philosophy|creator|game-|football-(messi-dream|irankunda|terceros|messi-group))/.test(quote.id));
+    const fieldPrefixes = ["anime-", "football-", "science-", "literature-", "philosophy-", "creator-", "game-"];
+    for (const prefix of fieldPrefixes) expect(added.filter((quote) => quote.id.startsWith(prefix)).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("requires named speakers for game and pro player quotations, except explicitly labelled official slogans", () => {
+    const spokenQuotes = adventureQuotes.filter((quote) => (quote.sourceType === "game" || quote.sourceType === "proPlayer") && !quote.note?.includes("官方宣傳語"));
+    expect(spokenQuotes.every((quote) => Boolean(quote.speaker))).toBe(true);
+    expect(adventureQuotes.filter((quote) => quote.sourceType === "game" && !quote.speaker).every((quote) => quote.note?.includes("官方宣傳語") && quote.note?.includes("不歸屬角色"))).toBe(true);
   });
 
   it("formats source status and skin information for users", () => {

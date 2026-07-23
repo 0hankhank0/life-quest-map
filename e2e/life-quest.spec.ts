@@ -4,6 +4,7 @@ async function onboard(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
+  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
   await page.locator("input").first().fill("E2E Hero");
   await page.locator("form button[type=submit]").click();
   await expect(page.getByTestId("beginner-guide")).toBeVisible();
@@ -25,6 +26,7 @@ test("new users complete the five-step beginner guide and keep its state", async
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
+  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
   await page.locator("input").first().fill("Guide Hero");
   await page.getByRole("button", { name: "運動玩家" }).click();
   await page.locator("form button[type=submit]").click();
@@ -64,6 +66,7 @@ test("mobile beginner guide stays inside the viewport and can be completed", asy
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
+  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
   await page.locator("input").first().fill("Mobile Guide");
   await page.locator("form button[type=submit]").click();
   const guide = page.getByTestId("beginner-guide");

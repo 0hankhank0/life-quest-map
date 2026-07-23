@@ -9,7 +9,7 @@ describe("state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(9);
+    expect(migrated.schemaVersion).toBe(10);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
@@ -101,7 +101,7 @@ describe("state migration", () => {
 
   it("starts new accounts with an unfinished beginner guide", () => {
     const state = createInitialLifeQuestState();
-    expect(state.schemaVersion).toBe(9);
+    expect(state.schemaVersion).toBe(10);
     expect(state.userSettings.tutorialCompletedAt).toBeNull();
   });
 
