@@ -31,7 +31,7 @@ function getReflectionMessage(count: number) {
   if (count === 0) return "這週還有很多空白，從一個五分鐘的小冒險開始就好。";
   if (count === 1) return "這週已經有一個值得記住的時刻。";
   if (count <= 3) return "這週的生活，已經多了幾個不一樣的片段。";
-  return "你正在慢慢收藏一段屬於自己的生活。";
+  return "這週已經記下不少生活片段。";
 }
 
 function getMomentsToRemember(lifeMoments: LifeMoment[]) {
@@ -63,13 +63,13 @@ export function WeeklyReflection({
         </div>
         <div>
           <h2 id="weekly-reflection-heading" className="text-xl font-black text-zinc-50">這週的生活</h2>
-          <p className="mt-1 text-sm leading-6 text-zinc-400">回頭看看，你留下了哪些值得記住的片段。</p>
+          <p className="mt-1 text-sm leading-6 text-zinc-400">查看這週保存的微冒險感受與筆記。</p>
         </div>
       </div>
 
       {thisWeeksMoments.length === 0 ? (
         <div className="mt-5 rounded-xl bg-white/[0.04] px-4 py-4">
-          <p className="text-sm leading-6 text-zinc-300">這週還沒有留下生活片段，今天可以從一件小事開始。</p>
+          <p className="text-sm leading-6 text-zinc-300">這週還沒有生活片段。</p>
           <button type="button" onClick={onFindAdventure} className="mt-3 rounded-xl border border-emerald-200/30 px-3 py-2 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10 active:scale-[0.98]">
             找一個小冒險
           </button>

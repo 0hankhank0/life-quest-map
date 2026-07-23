@@ -8,29 +8,29 @@ import { useLifeQuest } from "@/components/LifeQuestProvider";
 const steps = [
   {
     title: "歡迎來到 Life Quest Map",
-    description: "把每天想完成的事情變成任務，累積 EXP、解鎖技能，留下屬於自己的冒險紀錄。"
+    description: "把每天想完成的事情變成任務，累積 EXP、解鎖技能，並保留完成紀錄。"
   },
   {
     title: "從現在的狀態開始",
     description: "選擇此刻的心情和可用時間，我們會推薦一個剛好做得到的小冒險。"
   },
   {
-    title: "每次完成，都會留下回聲",
+    title: "完成後會留下紀錄",
     description: "完成任務後會獲得 EXP 和一句城市迴響，也能記下當時的感受與一句話。"
   },
   {
-    title: "慢慢展開你的冒險地圖",
+    title: "用任務、地圖與技能整理進度",
     description: "",
     features: [
       "任務：建立日常行動與長期目標",
-      "地圖：新增屬於自己的探索據點",
-      "技能：用完成紀錄解鎖成長節點",
+      "地圖：新增自己的探索據點",
+      "技能：用完成紀錄解鎖技能節點",
       "檔案：查看手札、歷史與備份資料"
     ]
   },
   {
-    title: "不必準備完美，先完成一小步",
-    description: "挑一個現在做得到的微冒險，讓今天留下第一筆進度。"
+    title: "從一個做得到的任務開始",
+    description: "挑一個現在能完成的微冒險，建立第一筆完成紀錄。"
   }
 ];
 

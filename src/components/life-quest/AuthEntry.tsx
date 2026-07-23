@@ -30,7 +30,7 @@ export function AuthEntry() {
         <div className="grid size-14 place-items-center rounded-2xl bg-emerald-300/15 text-emerald-200"><Shield size={32} weight="duotone" /></div>
         <p className="mt-6 text-sm font-black tracking-[0.2em] text-emerald-200">LIFE QUEST</p>
         <h1 className="mt-2 text-3xl font-black">開始你的冒險</h1>
-        <p className="mt-3 leading-7 text-zinc-400">登入以開啟你的英雄旅程。遊戲進度目前仍保存在這台裝置；之後可隨時在個人檔案登出。</p>
+        <p className="mt-3 leading-7 text-zinc-400">登入或以訪客身分開始使用。遊戲進度目前仍保存在這台裝置；之後可隨時在個人檔案登出。</p>
         <div className="mt-7 grid gap-3">
           {googleEnabled ? <button type="button" onClick={() => void beginGoogleSignIn()} className="inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-emerald-300 px-4 font-black text-emerald-950 transition hover:bg-emerald-200"><GoogleLogo size={20} weight="bold" />使用 Google 登入</button> : null}
           <button type="button" onClick={continueAsGuest} className="min-h-12 rounded-xl border border-emerald-300/25 px-4 font-black text-emerald-100 transition hover:bg-emerald-300/10">先以訪客身分繼續</button>

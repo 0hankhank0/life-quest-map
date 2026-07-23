@@ -77,7 +77,7 @@ const seeds: AdventureSeed[] = [
 export const microAdventures: MicroAdventure[] = seeds.map(([id, title, moods, times, category, occupation]) => ({
   id,
   title,
-  description: `花 ${times[0]} 分鐘完成「${title}」，把注意力放回此刻可做到的一小步。`,
+  description: `花 ${times[0]} 分鐘完成「${title}」。`,
   moods,
   times,
   type: category === "exploration" || category === "social" ? "side" : "daily",

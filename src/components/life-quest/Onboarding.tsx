@@ -82,7 +82,7 @@ export function Onboarding() {
               建立你的日常冒險角色
             </h1>
             <p className="max-w-xl text-base leading-7 text-zinc-300">
-              把任務、技能、等級與地點串成一張可推進的人生地圖。
+              用任務、技能、等級與地點整理你的日常進度。
             </p>
           </div>
           <div className="map-preview-panel">
@@ -234,7 +234,7 @@ export function Onboarding() {
           {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
 
           <div className="space-y-1 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-3 text-xs leading-5 text-zinc-300">
-            <p>不用設定完美，進入後會有簡短教學帶你完成第一個冒險。</p>
+            <p>先完成基本設定，進入後會有簡短教學說明怎麼開始。</p>
             <p className="text-zinc-400">資料只保存在目前裝置，不會自動上傳；之後可在角色頁匯出備份。</p>
           </div>
 
