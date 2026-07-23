@@ -46,6 +46,28 @@ test("new users complete the five-step beginner guide and keep its state", async
   await expect(guide).toBeHidden();
 });
 
+test("guest can return to the auth entry and resume the same local adventure", async ({ page }) => {
+  await onboard(page);
+  const originalProfile = await page.evaluate(() => {
+    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
+    return raw ? (JSON.parse(raw) as { profile?: { name?: string } }).profile?.name : null;
+  });
+
+  await page.goto("/profile");
+  await expect(page.getByRole("button", { name: "登出帳號" })).toHaveCount(0);
+  await expect(page.getByTestId("profile-sign-in-google")).toBeVisible();
+  await expect(page.getByTestId("exit-guest-mode")).toBeVisible();
+  await page.getByTestId("exit-guest-mode").click();
+  await expect(page.getByTestId("continue-as-guest")).toBeVisible();
+  await page.getByTestId("continue-as-guest").click();
+  await expect(page.getByTestId("complete-micro-adventure")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "建立你的日常冒險角色" })).toHaveCount(0);
+  await expect.poll(async () => page.evaluate(() => {
+    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
+    return raw ? (JSON.parse(raw) as { profile?: { name?: string } }).profile?.name : null;
+  })).toBe(originalProfile);
+});
+
 test("profile can restart the guide without clearing adventure data", async ({ page }) => {
   await onboard(page);
   await page.getByTestId("complete-micro-adventure").click();

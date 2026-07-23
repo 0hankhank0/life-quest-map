@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowClockwise,
   DownloadSimple,
+  FacebookLogo,
+  GoogleLogo,
   Shield,
   Trash,
   UploadSimple
@@ -22,7 +24,7 @@ import { calendarDateKey } from "@/lib/utils";
 export function ProfilePanel() {
   const { state, restartBeginnerGuide, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
   const { showToast } = useToast();
-  const { user, guestMode, signOut, googleEnabled, facebookEnabled } = useAuth();
+  const { user, guestMode, signOut, signInWithGoogle, signInWithFacebook, exitGuestMode, googleEnabled, facebookEnabled } = useAuth();
   const profile = state.profile;
   const importInputRef = useRef<HTMLInputElement>(null);
   const [dataMessage, setDataMessage] = useState("");
@@ -112,10 +114,10 @@ export function ProfilePanel() {
       <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-black text-zinc-50">帳號與登入</h2>
-          {user ? <><p className="mt-1 truncate text-sm font-bold text-emerald-100">{String(user.user_metadata.full_name ?? user.user_metadata.name ?? profile.name)}</p><p className="mt-1 truncate text-sm text-zinc-400">{user.email}</p><p className="mt-2 text-xs text-zinc-500">登入方式：{user.app_metadata.provider === "facebook" ? "Facebook" : "Google"}</p></> : <p className="mt-1 text-sm leading-6 text-zinc-400">目前以訪客身分遊玩。遊戲資料仍只儲存在這台裝置。</p>}
-          {!user ? <p className="mt-2 text-xs text-zinc-500">Google：{googleEnabled ? "可用" : "未啟用"}；Facebook：{facebookEnabled ? "可用" : "未啟用"}</p> : null}
+          {user ? <><p className="mt-1 truncate text-sm font-bold text-emerald-100">{String(user.user_metadata.full_name ?? user.user_metadata.name ?? profile.name)}</p><p className="mt-1 truncate text-sm text-zinc-400">{user.email}</p><p className="mt-2 text-xs text-zinc-500">登入方式：{user.app_metadata.provider === "facebook" ? "Facebook" : "Google"}</p></> : <><p className="mt-1 text-sm leading-6 text-zinc-400">目前以訪客身分使用。任務與冒險進度只保存在這台裝置。</p><p className="mt-2 text-xs text-zinc-500">登入後會保留這台裝置目前的進度，但目前尚不支援跨裝置同步。</p></>}
         </div>
-        {user || guestMode ? <button type="button" onClick={() => void signOut().then(() => showToast("已登出。你的本機遊戲進度已保留。", "success")).catch(() => showToast("登出失敗，請再試一次。", "error"))} className="min-h-11 shrink-0 rounded-lg border border-red-300/20 px-4 py-3 text-sm font-bold text-red-100 transition hover:border-red-300/50">登出帳號</button> : null}
+        {user ? <button type="button" data-testid="sign-out" onClick={() => void signOut().then(() => showToast("已登出，本機冒險進度仍保留在此裝置。", "success")).catch(() => showToast("登出失敗，請再試一次。", "error"))} className="min-h-11 shrink-0 rounded-lg border border-red-300/20 px-4 py-3 text-sm font-bold text-red-100 transition hover:border-red-300/50">登出</button> : null}
+        {!user && guestMode ? <div className="grid w-full gap-2 sm:w-auto"><div className="grid gap-2 sm:grid-cols-2">{googleEnabled ? <button type="button" data-testid="profile-sign-in-google" onClick={() => void signInWithGoogle().catch(() => showToast("無法開始 Google 登入，請確認 OAuth 設定後再試。", "error"))} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-4 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-200"><GoogleLogo className="size-4" weight="bold" />使用 Google 登入</button> : null}{facebookEnabled ? <button type="button" data-testid="profile-sign-in-facebook" onClick={() => void signInWithFacebook().catch(() => showToast("無法開始 Facebook 登入，請確認 OAuth 設定後再試。", "error"))} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#1877f2]/40 px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-[#1877f2]/15"><FacebookLogo className="size-4" weight="bold" />使用 Facebook 登入</button> : null}</div><button type="button" data-testid="exit-guest-mode" onClick={exitGuestMode} className="min-h-11 rounded-lg border border-white/15 px-4 py-3 text-sm font-bold text-zinc-200 transition hover:border-white/30">返回登入畫面</button></div> : null}
       </section>
 
       <AdventureJournal />

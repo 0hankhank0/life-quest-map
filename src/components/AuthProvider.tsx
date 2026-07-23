@@ -8,7 +8,7 @@ import { isFacebookAuthEnabled, isGoogleAuthEnabled, isSupabaseConfigured } from
 const AUTH_CHOICE_KEY = "lifeQuestMap:authChoice:v1";
 type AuthContextValue = {
   user: User | null; isAuthLoading: boolean; isConfigured: boolean; googleEnabled: boolean; facebookEnabled: boolean; guestMode: boolean;
-  signInWithGoogle(): Promise<void>; signInWithFacebook(): Promise<void>; continueAsGuest(): void; signOut(): Promise<void>;
+  signInWithGoogle(): Promise<void>; signInWithFacebook(): Promise<void>; continueAsGuest(): void; exitGuestMode(): void; signOut(): Promise<void>;
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -25,8 +25,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createSupabaseBrowserClient();
     if (!supabase) { setIsAuthLoading(false); return; }
     let active = true;
-    void supabase.auth.getUser().then(({ data }) => { if (active) { setUser(data.user); setIsAuthLoading(false); } });
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); setIsAuthLoading(false); });
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setUser(data.user);
+      if (data.user) {
+        window.localStorage.removeItem(AUTH_CHOICE_KEY);
+        setGuestMode(false);
+      }
+      setIsAuthLoading(false);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextUser = session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
+        window.localStorage.removeItem(AUTH_CHOICE_KEY);
+        setGuestMode(false);
+      }
+      setIsAuthLoading(false);
+    });
     return () => { active = false; subscription.subscription.unsubscribe(); };
   }, []);
 
@@ -37,8 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
   const continueAsGuest = useCallback(() => { window.localStorage.setItem(AUTH_CHOICE_KEY, "guest"); setGuestMode(true); }, []);
+  const exitGuestMode = useCallback(() => { window.localStorage.removeItem(AUTH_CHOICE_KEY); setGuestMode(false); }, []);
   const signOut = useCallback(async () => { const supabase = createSupabaseBrowserClient(); if (supabase) { const { error } = await supabase.auth.signOut(); if (error) throw error; } window.localStorage.removeItem(AUTH_CHOICE_KEY); setGuestMode(false); setUser(null); }, []);
-  const value = useMemo(() => ({ user, isAuthLoading, isConfigured, googleEnabled, facebookEnabled, guestMode, signInWithGoogle: () => signIn("google"), signInWithFacebook: () => signIn("facebook"), continueAsGuest, signOut }), [user, isAuthLoading, isConfigured, googleEnabled, facebookEnabled, guestMode, signIn, continueAsGuest, signOut]);
+  const value = useMemo(() => ({ user, isAuthLoading, isConfigured, googleEnabled, facebookEnabled, guestMode, signInWithGoogle: () => signIn("google"), signInWithFacebook: () => signIn("facebook"), continueAsGuest, exitGuestMode, signOut }), [user, isAuthLoading, isConfigured, googleEnabled, facebookEnabled, guestMode, signIn, continueAsGuest, exitGuestMode, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
