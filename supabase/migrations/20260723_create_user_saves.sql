@@ -18,18 +18,44 @@ begin
 end;
 $$;
 
-drop trigger if exists user_saves_set_updated_at on public.user_saves;
+drop trigger if exists user_saves_set_updated_at
+on public.user_saves;
+
 create trigger user_saves_set_updated_at
 before update on public.user_saves
-for each row execute function public.set_user_saves_updated_at();
+for each row
+execute function public.set_user_saves_updated_at();
 
 alter table public.user_saves enable row level security;
+
 revoke all on public.user_saves from anon;
 revoke delete on public.user_saves from authenticated;
 grant select, insert, update on public.user_saves to authenticated;
 
-drop policy if exists "user_saves_select_own" on public.user_saves;
-create policy "user_saves_select_own" on public.user_saves for select to authenticated using ((select auth.uid()) = user_id);
-drop policy if exists "user_saves_insert_own" on public.user_saves;
-create policy "user_saves_insert_own" on public.user_saves for insert to authenticated with check ((select auth.uid()) = user_id);
-drop policy if exists "user_saves_update_own" on public.user_saves for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+drop policy if exists "user_saves_select_own"
+on public.user_saves;
+
+create policy "user_saves_select_own"
+on public.user_saves
+for select
+to authenticated
+using ((select auth.uid()) = user_id);
+
+drop policy if exists "user_saves_insert_own"
+on public.user_saves;
+
+create policy "user_saves_insert_own"
+on public.user_saves
+for insert
+to authenticated
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "user_saves_update_own"
+on public.user_saves;
+
+create policy "user_saves_update_own"
+on public.user_saves
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
