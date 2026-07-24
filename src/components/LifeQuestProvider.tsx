@@ -89,7 +89,21 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
         const row = await adapter.read(userId);
         if (cancelled) return;
         if (row) {
-          if (cached?.dirty) { pendingCloudRef.current = row; cloudRevisionRef.current = cached.cloudRevision; suppressPersistRef.current = true; setState(cached.state); setLastSyncedAt(cached.lastSyncedAt); setCloudStatus("conflict"); }
+          if (cached?.dirty) {
+            cloudRevisionRef.current = cached.cloudRevision;
+            suppressPersistRef.current = true;
+            setState(cached.state);
+            setLastSyncedAt(cached.lastSyncedAt);
+            // A dirty cache based on the same revision is simply an interrupted
+            // debounce. Keep it and retry the optimistic update instead of
+            // asking the user to resolve a conflict that does not exist.
+            if (cached.cloudRevision === row.revision || JSON.stringify(cached.state) === JSON.stringify(row.state)) {
+              setCloudStatus("unsynced");
+            } else {
+              pendingCloudRef.current = row;
+              setCloudStatus("conflict");
+            }
+          }
           else { applyCloudRow(row); setCloudStatus("synced"); }
           setCloudBootstrap("ready"); setIsHydrated(true); return;
         }
@@ -103,7 +117,11 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
         const message = error instanceof Error ? error.message : "雲端存檔初始化失敗。";
         const kind = (error as CloudSaveError).kind;
         const next = cached?.state ?? createInitialLifeQuestState();
-        suppressPersistRef.current = true; setState(next); cloudRevisionRef.current = cached?.cloudRevision ?? null; setLastSyncedAt(cached?.lastSyncedAt ?? null); setCloudStatus(kind === "unavailable" ? "unavailable" : kind === "offline" ? "offline" : "error"); setCloudError(message); setCloudBootstrap("error"); setIsHydrated(true);
+        suppressPersistRef.current = true; setState(next); cloudRevisionRef.current = cached?.cloudRevision ?? null; setLastSyncedAt(cached?.lastSyncedAt ?? null); setCloudStatus(kind === "unavailable" ? "unavailable" : kind === "offline" ? "offline" : "error"); setCloudError(message);
+        // Cached account progress remains usable when the network, migration,
+        // or Supabase is temporarily unavailable. Only block a brand-new
+        // account with no local data and no cloud response.
+        setCloudBootstrap(cached ? "ready" : "error"); setIsHydrated(true);
       }
     };
     void load();
