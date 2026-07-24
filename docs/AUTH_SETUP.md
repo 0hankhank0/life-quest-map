@@ -27,6 +27,10 @@ The app's `/auth/callback` exchanges Supabase's authorization code for a cookie 
 
 Supabase OAuth session handling is complete. Google and Facebook login are optional and controlled by their respective `NEXT_PUBLIC_AUTH_*_ENABLED` feature flags; Facebook remains disabled by default.
 
-Signing in establishes a user identity only. Life Quest progress (including the profile, tasks, EXP, skills, and journal) remains in this browser's `lifeQuestMap:v0.1` LocalStorage entry. Signing out and switching between guest mode and an OAuth identity never delete that progress.
+Before cloud save is enabled, signing in establishes a user identity only. Guest progress remains in this browser's `lifeQuestMap:v0.1` LocalStorage entry. Once the `user_saves` migration is applied, signed-in progress uses a separate account-specific cache and cloud JSONB save; signing out and switching identities never delete either cache.
 
-Cross-device progress sync, cloud backups, and account-linked player data have not been implemented yet. OAuth does not request Drive, Calendar, or Contacts permissions.
+OAuth does not request Drive, Calendar, or Contacts permissions. Cloud saves remain unavailable until the migration described below is manually applied.
+
+## Cloud save
+
+Cloud save is available after the local `user_saves` migration has been manually applied to the intended Supabase project. It stores one JSONB save per account and keeps an account-specific LocalStorage cache for offline use. See [CLOUD_SAVE_SETUP.md](./CLOUD_SAVE_SETUP.md) for RLS, first-import, optimistic revision, and conflict-handling details.

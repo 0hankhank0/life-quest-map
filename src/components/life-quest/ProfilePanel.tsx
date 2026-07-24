@@ -22,7 +22,7 @@ import { getStrongestStat } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
 
 export function ProfilePanel() {
-  const { state, restartBeginnerGuide, resetAppData, restoreDemoData, exportData, importData } = useLifeQuest();
+  const { state, restartBeginnerGuide, resetAppData, restoreDemoData, exportData, importData, cloudStatus, cloudError, lastSyncedAt, syncNow, useCloudVersion, overwriteCloudWithLocal } = useLifeQuest();
   const { showToast } = useToast();
   const { user, guestMode, signOut, signInWithGoogle, signInWithFacebook, exitGuestMode, googleEnabled, facebookEnabled } = useAuth();
   const profile = state.profile;
@@ -114,9 +114,9 @@ export function ProfilePanel() {
       <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-xl font-black text-zinc-50">帳號與登入</h2>
-          {user ? <><p className="mt-1 truncate text-sm font-bold text-emerald-100">{String(user.user_metadata.full_name ?? user.user_metadata.name ?? profile.name)}</p><p className="mt-1 truncate text-sm text-zinc-400">{user.email}</p><p className="mt-2 text-xs text-zinc-500">登入方式：{user.app_metadata.provider === "facebook" ? "Facebook" : "Google"}</p></> : <><p className="mt-1 text-sm leading-6 text-zinc-400">目前以訪客身分使用。任務與冒險進度只保存在這台裝置。</p><p className="mt-2 text-xs text-zinc-500">登入後會保留這台裝置目前的進度，但目前尚不支援跨裝置同步。</p></>}
+          {user ? <><p className="mt-1 truncate text-sm font-bold text-emerald-100">{String(user.user_metadata.full_name ?? user.user_metadata.name ?? profile.name)}</p><p className="mt-1 truncate text-sm text-zinc-400">{user.email}</p><p className="mt-2 text-xs text-zinc-500">登入方式：{user.app_metadata.provider === "facebook" ? "Facebook" : "Google"}</p><p className="mt-2 text-sm text-zinc-300">雲端存檔：{cloudStatusLabel(cloudStatus)}</p>{lastSyncedAt ? <p className="mt-1 text-xs text-zinc-500">最後同步：{new Date(lastSyncedAt).toLocaleString()}</p> : null}{cloudError ? <p className="mt-1 text-xs text-amber-200">{cloudError}</p> : null}{cloudStatus === "conflict" ? <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={useCloudVersion} className="rounded-lg border border-amber-300/30 px-3 py-2 text-xs font-bold text-amber-100">使用雲端版本</button><button type="button" onClick={() => void overwriteCloudWithLocal()} className="rounded-lg border border-red-300/30 px-3 py-2 text-xs font-bold text-red-100">使用這台裝置版本覆蓋雲端</button></div> : null}</> : <><p className="mt-1 text-sm leading-6 text-zinc-400">目前以訪客身分使用。任務與冒險進度只保存在這台裝置。</p><p className="mt-2 text-xs text-zinc-500">登入後會保留這台裝置目前的進度，但目前尚不支援跨裝置同步。</p></>}
         </div>
-        {user ? <button type="button" data-testid="sign-out" onClick={() => void signOut().then(() => showToast("已登出，本機冒險進度仍保留在此裝置。", "success")).catch(() => showToast("登出失敗，請再試一次。", "error"))} className="min-h-11 shrink-0 rounded-lg border border-red-300/20 px-4 py-3 text-sm font-bold text-red-100 transition hover:border-red-300/50">登出</button> : null}
+        {user ? <div className="flex flex-wrap gap-2"><button type="button" data-testid="sync-now" onClick={() => void syncNow()} className="min-h-11 rounded-lg border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-100">{cloudStatus === "syncing" ? "正在同步" : cloudStatus === "offline" || cloudStatus === "error" ? "重試同步" : "立即同步"}</button><button type="button" data-testid="sign-out" onClick={() => void signOut().then(() => showToast("已登出，本機與雲端進度都會保留。", "success")).catch(() => showToast("登出失敗，請再試一次。", "error"))} className="min-h-11 shrink-0 rounded-lg border border-red-300/20 px-4 py-3 text-sm font-bold text-red-100 transition hover:border-red-300/50">登出</button></div> : null}
         {!user && guestMode ? <div className="grid w-full gap-2 sm:w-auto"><div className="grid gap-2 sm:grid-cols-2">{googleEnabled ? <button type="button" data-testid="profile-sign-in-google" onClick={() => void signInWithGoogle().catch(() => showToast("無法開始 Google 登入，請確認 OAuth 設定後再試。", "error"))} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-4 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-200"><GoogleLogo className="size-4" weight="bold" />使用 Google 登入</button> : null}{facebookEnabled ? <button type="button" data-testid="profile-sign-in-facebook" onClick={() => void signInWithFacebook().catch(() => showToast("無法開始 Facebook 登入，請確認 OAuth 設定後再試。", "error"))} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#1877f2]/40 px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-[#1877f2]/15"><FacebookLogo className="size-4" weight="bold" />使用 Facebook 登入</button> : null}</div><button type="button" data-testid="exit-guest-mode" onClick={exitGuestMode} className="min-h-11 rounded-lg border border-white/15 px-4 py-3 text-sm font-bold text-zinc-200 transition hover:border-white/30">返回登入畫面</button></div> : null}
       </section>
 
@@ -249,6 +249,10 @@ export function ProfilePanel() {
       </section>
     </div>
   );
+}
+
+function cloudStatusLabel(status: ReturnType<typeof useLifeQuest>["cloudStatus"]) {
+  return ({ loading: "正在載入", syncing: "正在同步", synced: "已同步", unsynced: "有尚未同步的變更", offline: "離線，已保存於此裝置", unavailable: "雲端存檔尚未啟用", error: "同步失敗", conflict: "發現多裝置衝突", guest: "訪客模式" } as const)[status];
 }
 
 function ProfileMetric({ label, value }: { label: string; value: number | string }) {
