@@ -42,4 +42,10 @@ describe("user_saves migration", () => {
     expect(sql).not.toMatch(/grant[^;]*delete[^;]*authenticated/i);
     expect(sql).not.toMatch(/grant[^;]*(insert|update)[^;]*anon/i);
   });
+
+  it("limits the JSONB payload size in the follow-up migration", () => {
+    const sql = readFileSync("supabase/migrations/20260724_limit_user_save_size.sql", "utf8");
+    expect(sql).toMatch(/octet_length\(save_data::text\)\s*<=\s*1048576/i);
+    expect(sql).toMatch(/drop constraint if exists/i);
+  });
 });
