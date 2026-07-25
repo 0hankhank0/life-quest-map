@@ -175,7 +175,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds).filter((id) => skillNodeIds.has(id)),
     savedQuotes: normalizeSavedQuotes(source.savedQuotes),
     adventureJournal: normalizeAdventureJournal(source.adventureJournal),
-    recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-4),
+    recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-5),
     userSettings: { ...defaultUserSettings, ...(sourceSettings && (sourceSettings.theme === "system" || sourceSettings.theme === "dark") ? { theme: sourceSettings.theme } : {}), ...(sourceSettings && typeof sourceSettings.reducedMotion === "boolean" ? { reducedMotion: sourceSettings.reducedMotion } : {}), ...(sourceSettings && typeof sourceSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: sourceSettings.notificationsEnabled } : {}), tutorialCompletedAt }
   };
 }
