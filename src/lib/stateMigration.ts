@@ -10,7 +10,7 @@ import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
 import { normalizeCustomMapLocation } from "@/lib/mapLocations";
 import { findAdventureQuote } from "@/data/adventureQuotes";
-import type { AdventureJournalEntry, AdventureQuoteSourceStatus, AttributionStatus, CityEchoCategory, CompletionMood, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
+import type { AdventureJournalEntry, AdventureQuoteSourceStatus, AttributionStatus, CityEchoCategory, CompletionMood, CompletionQuoteEvent, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
 
 type StateRecord = Record<string, unknown>;
 type PartialQuest = Partial<Quest> & Pick<Quest, "id" | "title" | "description">;
@@ -93,6 +93,12 @@ function normalizeAdventureJournal(value: unknown): AdventureJournalEntry[] {
   });
 }
 
+function normalizeCompletionQuoteEvents(value: unknown): CompletionQuoteEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isRecord).flatMap((item) => typeof item.shownAt === "string" && isDateString(item.shownAt) && typeof item.taskId === "string" && item.taskId
+    ? [{ shownAt: item.shownAt, taskId: item.taskId }] : []).slice(-20);
+}
+
 /** Converts any persisted state-shaped object into the complete v9 schema. */
 export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQuestState {
   const fallback = createInitialLifeQuestState();
@@ -156,7 +162,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
 
   return {
     ...fallback,
-    schemaVersion: 10,
+    schemaVersion: 11,
     profile: profile as LifeQuestState["profile"],
     quests,
     stats: { ...defaultStats, ...(isRecord(source.stats) ? source.stats : {}) },
@@ -175,7 +181,8 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     unlockedSkillNodeIds: uniqueIds(source.unlockedSkillNodeIds).filter((id) => skillNodeIds.has(id)),
     savedQuotes: normalizeSavedQuotes(source.savedQuotes),
     adventureJournal: normalizeAdventureJournal(source.adventureJournal),
-    recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-4),
+    recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-5),
+    completionQuoteEvents: normalizeCompletionQuoteEvents(source.completionQuoteEvents),
     userSettings: { ...defaultUserSettings, ...(sourceSettings && (sourceSettings.theme === "system" || sourceSettings.theme === "dark") ? { theme: sourceSettings.theme } : {}), ...(sourceSettings && typeof sourceSettings.reducedMotion === "boolean" ? { reducedMotion: sourceSettings.reducedMotion } : {}), ...(sourceSettings && typeof sourceSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: sourceSettings.notificationsEnabled } : {}), tutorialCompletedAt }
   };
 }

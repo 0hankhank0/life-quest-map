@@ -9,7 +9,7 @@ describe("state migration", () => {
     const old = createInitialLifeQuestState();
     const completedAt = "2026-07-15T08:00:00.000Z";
     const migrated = migrateLifeQuestState({ ...old, schemaVersion: undefined, dailyProgress: undefined, streak: undefined, customMapLocations: undefined, unlockedSkillNodeIds: undefined, userSettings: undefined, quests: [{ ...old.quests[0], status: "completed", completedAt }] }, now);
-    expect(migrated.schemaVersion).toBe(10);
+    expect(migrated.schemaVersion).toBe(11);
     expect(migrated.dailyProgress).toEqual({ date: "2026-07-15", completedQuestIds: [old.quests[0].id], expEarned: old.quests[0].expReward });
     expect(migrated.streak).toMatchObject({ current: 1, longest: 1, lastCompletedDate: "2026-07-15" });
     expect(migrated.customMapLocations).toEqual([]);
@@ -17,6 +17,7 @@ describe("state migration", () => {
     expect(migrated.savedQuotes).toEqual([]);
     expect(migrated.adventureJournal).toEqual([]);
     expect(migrated.recentAdventureQuoteIds).toEqual([]);
+    expect(migrated.completionQuoteEvents).toEqual([]);
   });
 
   it("derives daily EXP when a v2 daily summary has no expEarned field", () => {
@@ -73,7 +74,15 @@ describe("state migration", () => {
     ], recentAdventureQuoteIds: ["city-1", "city-1", 3, "city-2", "city-3", "city-4", "city-5"] }, now);
     expect(migrated.adventureJournal).toHaveLength(1);
     expect(migrated.adventureJournal[0]).toMatchObject({ taskName: "散步", mood: "calm", quoteText: "城市沒有突然改變。" });
-    expect(migrated.recentAdventureQuoteIds).toEqual(["city-2", "city-3", "city-4", "city-5"]);
+    expect(migrated.recentAdventureQuoteIds).toEqual(["city-1", "city-2", "city-3", "city-4", "city-5"]);
+  });
+
+  it("preserves valid quote trigger events and ignores malformed legacy entries", () => {
+    const state = createInitialLifeQuestState();
+    const migrated = migrateLifeQuestState({ ...state, completionQuoteEvents: [
+      { taskId: "quest-1", shownAt: "2026-07-15T08:00:00.000Z" }, { taskId: 2, shownAt: "bad" }
+    ] }, now);
+    expect(migrated.completionQuoteEvents).toEqual([{ taskId: "quest-1", shownAt: "2026-07-15T08:00:00.000Z" }]);
   });
 
   it("migrates text-only journal quotes into known or explicitly unverified snapshots", () => {
@@ -101,7 +110,7 @@ describe("state migration", () => {
 
   it("starts new accounts with an unfinished beginner guide", () => {
     const state = createInitialLifeQuestState();
-    expect(state.schemaVersion).toBe(10);
+    expect(state.schemaVersion).toBe(11);
     expect(state.userSettings.tutorialCompletedAt).toBeNull();
   });
 

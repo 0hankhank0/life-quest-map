@@ -220,6 +220,17 @@ export type QuoteSourceType = AdventureQuoteSourceType
 export type AttributionStatus = "verified" | "source-known" | "unverified";
 export type AdventureQuoteSourceStatus = "verified" | "likely" | "paraphrase" | "unverified" | "original";
 
+export type QuoteTheme =
+  | "growth" | "learning" | "persistence" | "courage" | "action"
+  | "exploration" | "creativity" | "relationships" | "daily-life"
+  | "rest" | "reflection" | "recovery";
+
+export type TaskContext =
+  | "study" | "exercise" | "work" | "creative" | "social" | "daily"
+  | "health" | "adventure" | "self-care" | "general";
+
+export type QuoteIntensity = "gentle" | "normal" | "epic";
+
 export interface AdventureQuote {
   id: string;
   text: string;
@@ -240,6 +251,10 @@ export interface AdventureQuote {
   categories: CityEchoCategory[];
   tags?: string[];
   intents?: QuoteIntent[];
+  /** Semantic selection metadata. Optional so older exported catalog snapshots still load. */
+  themes?: QuoteTheme[];
+  contexts?: TaskContext[];
+  intensity?: QuoteIntensity;
   avoidIntents?: QuoteIntent[];
   specificity?: "neutral" | "specific";
   enabled: boolean;
@@ -305,8 +320,13 @@ export interface AdventureJournalEntry {
   rewardLabel?: string;
 }
 
+export interface CompletionQuoteEvent {
+  shownAt: string;
+  taskId: string;
+}
+
 export interface LifeQuestState {
-  schemaVersion: 10;
+  schemaVersion: 11;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
@@ -326,6 +346,8 @@ export interface LifeQuestState {
   savedQuotes: SavedQuote[];
   adventureJournal: AdventureJournalEntry[];
   recentAdventureQuoteIds: string[];
+  /** Small, persisted audit trail used to make City Echoes feel rare. */
+  completionQuoteEvents: CompletionQuoteEvent[];
   userSettings: UserSettings;
 }
 

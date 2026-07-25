@@ -1,4 +1,4 @@
-import type { AdventureQuote, CityEchoCategory, Quest, QuestCategory, QuoteIntent } from "@/types";
+import type { AdventureQuote, CityEchoCategory, Quest, QuestCategory, QuoteIntent, QuoteTheme, TaskContext } from "@/types";
 
 export const cityEchoCategoryLabels: Record<CityEchoCategory, string> = {
   exploration: "探索的回聲", connection: "相遇的回聲", rest: "休息的回聲", awareness: "察覺的回聲",
@@ -148,6 +148,34 @@ for (const quote of adventureQuotes) {
   const inferred = intentKeywords.filter(([, pattern]) => pattern.test(text)).map(([intent]) => intent);
   quote.intents = quote.intents?.length ? quote.intents : [...new Set([...quote.categories.flatMap((category) => categoryIntents[category]), ...inferred])];
   quote.specificity ??= inferred.length ? "specific" : "neutral";
+}
+
+// Curated semantic metadata is intentionally independent from sourceType.  The base mapping
+// covers the legacy catalog; the overrides prevent heroic lines from leaking into chores.
+const intentThemes: Partial<Record<QuoteIntent, QuoteTheme>> = {
+  small_step: "daily-life", progress: "growth", learning: "learning", discipline: "persistence", focus: "persistence",
+  creation: "creativity", exploration: "exploration", awareness: "reflection", rest: "rest", fitness: "action",
+  courage: "courage", resilience: "recovery", failure: "recovery", dream: "growth", self_belief: "courage",
+  change: "growth", connection: "relationships", teamwork: "relationships", reflection: "reflection"
+};
+const categoryContexts: Record<CityEchoCategory, TaskContext[]> = {
+  exploration: ["adventure"], connection: ["social"], rest: ["self-care", "health"], awareness: ["general", "self-care"],
+  courage: ["work", "study", "adventure"], creation: ["creative"], daily: ["daily", "general"]
+};
+const gentleQuoteIds = new Set(["city-1", "city-3", "city-6", "city-7", "city-8", "city-9", "city-10", "city-12", "city-13", "city-14", "original-slow-still-forward", "philosophy-xunzi-small-steps", "literature-dickinson-forever-nows"]);
+const epicQuoteIds = new Set(["pd-libai-break-waves", "anime-demonslayer-rengoku-heart", "anime-myhero-plus-ultra", "literature-shakespeare-breach", "science-armstrong-giant-leap", "game-zelda-courage-never-forgotten", "game-valorant-defy-limits", "football-messi-fight-everything", "football-messi-dream-came-true"]);
+
+for (const quote of adventureQuotes) {
+  const themes = new Set<QuoteTheme>(quote.intents?.map((intent) => intentThemes[intent]).filter((theme): theme is QuoteTheme => Boolean(theme)) ?? []);
+  if (quote.categories.includes("daily")) themes.add("daily-life");
+  if (quote.categories.includes("creation")) themes.add("creativity");
+  if (quote.categories.includes("connection")) themes.add("relationships");
+  if (quote.categories.includes("exploration")) themes.add("exploration");
+  if (quote.categories.includes("rest")) themes.add("rest");
+  if (!themes.size) themes.add("growth");
+  quote.themes = [...themes];
+  quote.contexts = [...new Set(quote.categories.flatMap((category) => categoryContexts[category]))];
+  quote.intensity = epicQuoteIds.has(quote.id) ? "epic" : gentleQuoteIds.has(quote.id) ? "gentle" : "normal";
 }
 
 export function inferQuestIntents(quest: Pick<Quest, "title" | "description" | "category" | "type">, tags: readonly string[] = []): QuoteIntent[] {
