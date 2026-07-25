@@ -5,8 +5,10 @@ import { createDefaultAchievements, createDemoQuests, createInitialLifeQuestStat
 import { getOccupationQuestPack } from "@/data/questPacks";
 import { adventureQuotes, inferCityEchoCategory } from "@/data/adventureQuotes";
 import { quotePlayerStateFromLifeState, selectQuoteForTask } from "@/lib/quoteSelection";
+import { shouldShowCompletionQuote } from "@/lib/completionQuoteTrigger";
 import { microAdventures } from "@/data/microAdventures";
 import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/components/ToastProvider";
 import { CloudSaveConflictError, type CloudSaveEnvelope, type CloudSaveRow, type CloudSaveError, conflictBackupKey, createSupabaseCloudSaveAdapter, GUEST_SAVE_KEY, parseCloudSaveEnvelope, userSaveKey } from "@/lib/cloudSave";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { appendRecommendationHistory, toggleUniqueId } from "@/lib/adventurePreferences";
@@ -51,6 +53,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const syncInFlightRef = useRef(false);
   const [completionFeedback, setCompletionFeedback] = useState<CompletionFeedback | null>(null);
+  const { showToast } = useToast();
   const handledFeedbackEventIds = useRef(new Set<string>());
 
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -219,21 +222,23 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
       applyCloudRow(row); pendingCloudRef.current = null; setCloudStatus("synced");
     } catch (error) { setCloudStatus("conflict"); setCloudError(error instanceof Error ? error.message : "無法覆蓋雲端版本。"); }
   }, [applyCloudRow, user]);
-  const showFeedback = useCallback((eventId: string, quest: Quest, canSaveJournal = true, rewardLabel?: string, tags: readonly string[] = []) => {
+  const showFeedback = useCallback((eventId: string, quest: Quest, canSaveJournal = true, rewardLabel?: string, tags: readonly string[] = [], stateAfterCompletion: LifeQuestState = state, levelUp = false, isMicroAdventure = false) => {
     if (handledFeedbackEventIds.current.has(eventId)) return;
     handledFeedbackEventIds.current.add(eventId);
+    const now = new Date();
+    if (!shouldShowCompletionQuote({ state: stateAfterCompletion, task: quest, now, levelUp, isMicroAdventure }).show) { showToast(`任務完成　+${quest.expReward} XP`, "success"); return; }
     const category = inferCityEchoCategory(quest, tags);
-    const quote = selectQuoteForTask({ task: quest, quotes: adventureQuotes, tags, recentQuoteIds: state.recentAdventureQuoteIds, playerState: quotePlayerStateFromLifeState(state, quest) });
-    setState((current) => ({ ...current, recentAdventureQuoteIds: [...current.recentAdventureQuoteIds, quote.id].slice(-5) }));
+    const quote = selectQuoteForTask({ task: quest, quotes: adventureQuotes, tags, recentQuoteIds: stateAfterCompletion.recentAdventureQuoteIds, playerState: quotePlayerStateFromLifeState(stateAfterCompletion, quest, now) });
+    setState((current) => ({ ...current, recentAdventureQuoteIds: [...current.recentAdventureQuoteIds, quote.id].slice(-5), completionQuoteEvents: [...current.completionQuoteEvents, { taskId: quest.id, shownAt: now.toISOString() }].slice(-20) }));
     setCompletionFeedback({ eventId, quote, taskId: quest.id, taskName: quest.title, completedAt: quest.completedAt ?? new Date().toISOString(), category, questCategory: quest.category, expReward: quest.expReward, rewardLabel, canSaveJournal });
-  }, [setState, state]);
+  }, [setState, showToast, state]);
   const onboard = useCallback((input: OnboardingInput) => setState((current) => ({ ...current, occupationSuggestions: input.occupation === "custom" && input.customOccupationName?.trim() ? [...current.occupationSuggestions, { id: createId("occupation"), name: input.customOccupationName.trim(), note: input.occupationSuggestion?.trim() ?? "", createdAt: new Date().toISOString() }] : current.occupationSuggestions, profile: { id: createId("hero"), name: input.name.trim(), lifeStage: input.lifeStage, studentStage: input.lifeStage === "student" ? input.studentStage : undefined, role: input.role, occupation: input.occupation, customOccupationName: input.occupation === "custom" ? input.customOccupationName?.trim() : undefined, focus: input.focuses[0] ?? "learning", focuses: input.focuses.length ? input.focuses : ["learning"], exp: 0, level: 1, createdAt: new Date().toISOString() } })), [setState]);
   const addQuestCallback = useCallback((draft: QuestDraft) => setState((current) => addQuest(current, draft)), [setState]);
   const addOccupationQuestPack = useCallback((occupation: OccupationCategory) => { const pack = getOccupationQuestPack(occupation); if (!pack) return 0; const result = addQuestPack(state, pack.quests); if (result.added) setState((current) => addQuestPack(current, pack.quests).state); return result.added; }, [setState, state]);
   const updateQuest = useCallback((id: string, draft: QuestDraft) => setState((current) => updateQuestOperation(current, id, draft)), [setState]);
   const deleteQuest = useCallback((id: string) => setState((current) => deleteQuestOperation(current, id)), [setState]);
-  const completeQuest = useCallback((id: string) => { const quest = state.quests.find((item) => item.id === id); if (!quest || quest.status === "completed") return; const next = completeQuestOperation(state, id); setState(next); const completed = next.quests.find((item) => item.id === id); if (completed) showFeedback(`quest:${id}:${completed.completedAt}`, completed, true, `+1 ${categoryLabels[completed.category]}`); }, [setState, showFeedback, state]);
-  const completeMicroAdventure = useCallback((adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => { const next = completeMicroAdventureOperation(state, adventureId, draft, note, mood); if (next === state) return; setState(next); const completed = next.quests.find((quest) => quest.status === "completed" && quest.title === draft.title && quest.completedAt && !state.quests.some((previous) => previous.id === quest.id)); const adventure = microAdventures.find((item) => item.id === adventureId); if (completed) showFeedback(`micro:${completed.id}`, completed, true, `+1 ${categoryLabels[completed.category]}`, adventure ? [...adventure.moods, ...adventure.times] : []); }, [setState, showFeedback, state]);
+  const completeQuest = useCallback((id: string) => { const quest = state.quests.find((item) => item.id === id); if (!quest || quest.status === "completed") return; const next = completeQuestOperation(state, id); setState(next); const completed = next.quests.find((item) => item.id === id); if (completed) showFeedback(`quest:${id}:${completed.completedAt}`, completed, true, `+1 ${categoryLabels[completed.category]}`, [], next, (next.profile?.level ?? 0) > (state.profile?.level ?? 0)); }, [setState, showFeedback, state]);
+  const completeMicroAdventure = useCallback((adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood) => { const next = completeMicroAdventureOperation(state, adventureId, draft, note, mood); if (next === state) return; setState(next); const completed = next.quests.find((quest) => quest.status === "completed" && quest.title === draft.title && quest.completedAt && !state.quests.some((previous) => previous.id === quest.id)); const adventure = microAdventures.find((item) => item.id === adventureId); if (completed) showFeedback(`micro:${completed.id}`, completed, true, `+1 ${categoryLabels[completed.category]}`, adventure ? [...adventure.moods, ...adventure.times] : [], next, (next.profile?.level ?? 0) > (state.profile?.level ?? 0), true); }, [setState, showFeedback, state]);
   const updateAdventureIds = useCallback((field: "favoriteAdventureIds" | "savedAdventureIds", id: string, action: "favorite" | "saved") => setState((current) => ({ ...current, [field]: toggleUniqueId(current[field], id), recommendationHistory: appendRecommendationHistory(current.recommendationHistory, id, action) })), [setState]);
   const toggleFavoriteAdventure = useCallback((id: string) => updateAdventureIds("favoriteAdventureIds", id, "favorite"), [updateAdventureIds]);
   const toggleSavedAdventure = useCallback((id: string) => updateAdventureIds("savedAdventureIds", id, "saved"), [updateAdventureIds]);
@@ -241,7 +246,7 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const showAdventure = useCallback((id: string) => setState((current) => ({ ...current, recommendationHistory: appendRecommendationHistory(current.recommendationHistory, id, "shown") })), [setState]);
   const selectAdventure = useCallback((id: string) => setState((current) => ({ ...current, selectedAdventureId: id })), [setState]);
   const clearSelectedAdventure = useCallback(() => setState((current) => current.selectedAdventureId ? { ...current, selectedAdventureId: null } : current), [setState]);
-  const completeMapLocation = useCallback((location: MapLocation) => { if (state.mapCompletions.includes(location.id)) return; const next = completeMapLocationOperation(state, location); setState(next); const completed = next.quests.find((quest) => quest.id === `map-${location.id}`); if (completed) showFeedback(`location:${location.id}`, completed, true, `+1 ${categoryLabels.exploration}`); }, [setState, showFeedback, state]);
+  const completeMapLocation = useCallback((location: MapLocation) => { if (state.mapCompletions.includes(location.id)) return; const next = completeMapLocationOperation(state, location); setState(next); const completed = next.quests.find((quest) => quest.id === `map-${location.id}`); if (completed) showFeedback(`location:${location.id}`, completed, true, `+1 ${categoryLabels.exploration}`, [], next, (next.profile?.level ?? 0) > (state.profile?.level ?? 0)); }, [setState, showFeedback, state]);
   const addCustomMapLocation = useCallback((location: MapLocation) => setState((current) => { const normalized = normalizeCustomMapLocation(location); return normalized && !current.customMapLocations.some((item) => item.id === normalized.id) ? { ...current, customMapLocations: [normalized, ...current.customMapLocations] } : current; }), [setState]);
   const updateCustomMapLocation = useCallback((location: MapLocation) => setState((current) => { const normalized = normalizeCustomMapLocation(location); return normalized ? { ...current, customMapLocations: current.customMapLocations.map((item) => item.id === normalized.id ? normalized : item) } : current; }), [setState]);
   const deleteCustomMapLocation = useCallback((id: string) => setState((current) => ({ ...current, customMapLocations: current.customMapLocations.filter((item) => item.id !== id), mapCompletions: current.mapCompletions.filter((item) => item !== id) })), [setState]);
