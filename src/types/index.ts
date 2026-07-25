@@ -320,8 +320,13 @@ export interface AdventureJournalEntry {
   rewardLabel?: string;
 }
 
+export interface CompletionQuoteEvent {
+  shownAt: string;
+  taskId: string;
+}
+
 export interface LifeQuestState {
-  schemaVersion: 10;
+  schemaVersion: 11;
   profile: UserProfile | null;
   quests: Quest[];
   stats: Stats;
@@ -341,6 +346,8 @@ export interface LifeQuestState {
   savedQuotes: SavedQuote[];
   adventureJournal: AdventureJournalEntry[];
   recentAdventureQuoteIds: string[];
+  /** Small, persisted audit trail used to make City Echoes feel rare. */
+  completionQuoteEvents: CompletionQuoteEvent[];
   userSettings: UserSettings;
 }
 

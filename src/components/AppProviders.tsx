@@ -7,5 +7,5 @@ import { LifeQuestProvider } from "@/components/LifeQuestProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  return <AppErrorBoundary><AuthProvider><LifeQuestProvider><ToastProvider>{children}</ToastProvider></LifeQuestProvider></AuthProvider></AppErrorBoundary>;
+  return <AppErrorBoundary><AuthProvider><ToastProvider><LifeQuestProvider>{children}</LifeQuestProvider></ToastProvider></AuthProvider></AppErrorBoundary>;
 }
