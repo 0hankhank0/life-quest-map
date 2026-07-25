@@ -73,7 +73,7 @@ describe("state migration", () => {
     ], recentAdventureQuoteIds: ["city-1", "city-1", 3, "city-2", "city-3", "city-4", "city-5"] }, now);
     expect(migrated.adventureJournal).toHaveLength(1);
     expect(migrated.adventureJournal[0]).toMatchObject({ taskName: "散步", mood: "calm", quoteText: "城市沒有突然改變。" });
-    expect(migrated.recentAdventureQuoteIds).toEqual(["city-2", "city-3", "city-4", "city-5"]);
+    expect(migrated.recentAdventureQuoteIds).toEqual(["city-1", "city-2", "city-3", "city-4", "city-5"]);
   });
 
   it("migrates text-only journal quotes into known or explicitly unverified snapshots", () => {

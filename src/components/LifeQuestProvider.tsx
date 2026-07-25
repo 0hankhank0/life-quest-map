@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createDefaultAchievements, createDemoQuests, createInitialLifeQuestState, defaultStats } from "@/data/defaults";
 import { getOccupationQuestPack } from "@/data/questPacks";
-import { pickAdventureQuoteForQuest } from "@/data/adventureQuotes";
+import { adventureQuotes, inferCityEchoCategory } from "@/data/adventureQuotes";
+import { quotePlayerStateFromLifeState, selectQuoteForTask } from "@/lib/quoteSelection";
 import { microAdventures } from "@/data/microAdventures";
 import { useAuth } from "@/components/AuthProvider";
 import { CloudSaveConflictError, type CloudSaveEnvelope, type CloudSaveRow, type CloudSaveError, conflictBackupKey, createSupabaseCloudSaveAdapter, GUEST_SAVE_KEY, parseCloudSaveEnvelope, userSaveKey } from "@/lib/cloudSave";
@@ -203,10 +204,11 @@ export function LifeQuestProvider({ children }: { children: ReactNode }) {
   const showFeedback = useCallback((eventId: string, quest: Quest, canSaveJournal = true, rewardLabel?: string, tags: readonly string[] = []) => {
     if (handledFeedbackEventIds.current.has(eventId)) return;
     handledFeedbackEventIds.current.add(eventId);
-    const { category, quote } = pickAdventureQuoteForQuest(quest, state.recentAdventureQuoteIds, { tags });
-    setState((current) => ({ ...current, recentAdventureQuoteIds: [...current.recentAdventureQuoteIds, quote.id].slice(-4) }));
+    const category = inferCityEchoCategory(quest, tags);
+    const quote = selectQuoteForTask({ task: quest, quotes: adventureQuotes, tags, recentQuoteIds: state.recentAdventureQuoteIds, playerState: quotePlayerStateFromLifeState(state, quest) });
+    setState((current) => ({ ...current, recentAdventureQuoteIds: [...current.recentAdventureQuoteIds, quote.id].slice(-5) }));
     setCompletionFeedback({ eventId, quote, taskId: quest.id, taskName: quest.title, completedAt: quest.completedAt ?? new Date().toISOString(), category, questCategory: quest.category, expReward: quest.expReward, rewardLabel, canSaveJournal });
-  }, [setState, state.recentAdventureQuoteIds]);
+  }, [setState, state]);
   const onboard = useCallback((input: OnboardingInput) => setState((current) => ({ ...current, occupationSuggestions: input.occupation === "custom" && input.customOccupationName?.trim() ? [...current.occupationSuggestions, { id: createId("occupation"), name: input.customOccupationName.trim(), note: input.occupationSuggestion?.trim() ?? "", createdAt: new Date().toISOString() }] : current.occupationSuggestions, profile: { id: createId("hero"), name: input.name.trim(), lifeStage: input.lifeStage, studentStage: input.lifeStage === "student" ? input.studentStage : undefined, role: input.role, occupation: input.occupation, customOccupationName: input.occupation === "custom" ? input.customOccupationName?.trim() : undefined, focus: input.focuses[0] ?? "learning", focuses: input.focuses.length ? input.focuses : ["learning"], exp: 0, level: 1, createdAt: new Date().toISOString() } })), [setState]);
   const addQuestCallback = useCallback((draft: QuestDraft) => setState((current) => addQuest(current, draft)), [setState]);
   const addOccupationQuestPack = useCallback((occupation: OccupationCategory) => { const pack = getOccupationQuestPack(occupation); if (!pack) return 0; const result = addQuestPack(state, pack.quests); if (result.added) setState((current) => addQuestPack(current, pack.quests).state); return result.added; }, [setState, state]);

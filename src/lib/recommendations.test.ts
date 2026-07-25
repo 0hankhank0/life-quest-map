@@ -49,6 +49,16 @@ describe("micro-adventure recommendations", () => {
     expect(getAdventureRecommendations([], base)).toEqual([]);
     expect(getAdventureRecommendations(microAdventures, base)).toEqual(getAdventureRecommendations(microAdventures, base));
   });
+  it("keeps the expanded adventure catalogue valid and uniquely keyed", () => {
+    expect(microAdventures).toHaveLength(101);
+    expect(microAdventures.filter((adventure) => adventure.category === "exploration")).toHaveLength(54);
+    expect(new Set(microAdventures.map((adventure) => adventure.id)).size).toBe(microAdventures.length);
+    expect(new Set(microAdventures.map((adventure) => adventure.title)).size).toBe(microAdventures.length);
+    for (const adventure of microAdventures) {
+      expect(adventure.moods.length).toBeGreaterThan(0);
+      expect(adventure.times.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe("preference migration", () => {
