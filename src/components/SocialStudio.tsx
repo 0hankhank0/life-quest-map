@@ -1,66 +1,110 @@
 "use client";
 
-import { Copy, DownloadSimple, Eye, EyeSlash, MagnifyingGlass, Shuffle, Sparkle } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import { Copy, DownloadSimple, MagnifyingGlass, Shuffle, Sparkle } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
 import { adventureQuotes } from "@/data/adventureQuotes";
-import { socialMissionCategories, socialMissions } from "@/data/socialMissions";
-import { SocialPostCard, type SocialPostFormat, socialPostHeight } from "@/components/SocialPostCard";
-import { formatAdventureQuoteAttribution } from "@/lib/adventureQuoteAttribution";
+import { socialMissionCategories, socialMissionTypes, socialMissions } from "@/data/socialMissions";
+import { SocialPostCard, type SocialPostFormat } from "@/components/SocialPostCard";
 import { createMissionCaption } from "@/lib/socialMissionCaption";
-import type { AdventureQuote, SocialMission, SocialMissionCategory } from "@/types";
+import { getSocialMissionTypeLabel } from "@/lib/socialMissionMeta";
+import type { QuestDifficulty, SocialMission, SocialMissionCategory, SocialMissionType } from "@/types";
 
-const formats: Array<{ value: SocialPostFormat; label: string; detail: string }> = [
-  { value: "portrait", label: "Instagram 直式", detail: "1080 × 1350" },
-  { value: "square", label: "正方形", detail: "1080 × 1080" },
-  { value: "threads", label: "Threads 寬版", detail: "1080 × 810" }
-];
-
-function canvasLines(context: CanvasRenderingContext2D, text: string, width: number) {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) { let line = ""; for (const character of paragraph) { const next = line + character; if (line && context.measureText(next).width > width) { lines.push(line); line = character; } else line = next; } if (line) lines.push(line); }
-  return lines;
+type MissionFilter = SocialMissionType | "all";
+const formats: Array<{ value: SocialPostFormat; label: string; detail: string }> = [{ value: "portrait", label: "Instagram 直式", detail: "1080 × 1350" }, { value: "square", label: "正方形", detail: "1080 × 1080" }, { value: "threads", label: "Threads 寬版", detail: "1080 × 810" }];
+const difficulties: Array<{ value: QuestDifficulty; label: string }> = [{ value: "easy", label: "簡單" }, { value: "normal", label: "普通" }, { value: "hard", label: "挑戰" }];
+const difficultyLabel = (value: QuestDifficulty) => difficulties.find((item) => item.value === value)?.label ?? "普通";
+const safeText = (value: string) => value.trim().slice(0, 240);
+const createCustom = (base: SocialMission): SocialMission => ({ ...base, id: "custom-mission", title: "", objectiveTitle: "", description: "", completionCondition: "", rewardLabel: "成長經驗 +1", steps: undefined });
+function heightFor(format: SocialPostFormat) { return format === "portrait" ? 1350 : format === "square" ? 1080 : 810; }
+function lines(context: CanvasRenderingContext2D, text: string, width: number) { const result: string[] = []; let line = ""; for (const char of text) { if (line && context.measureText(line + char).width > width) { result.push(line); line = char; } else line += char; } if (line) result.push(line); return result; }
+async function exportPost(post: { quote?: typeof adventureQuotes[number]; mission?: SocialMission }, format: SocialPostFormat) {
+  await document.fonts.ready; const width = 1080; const height = heightFor(format); const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("無法建立 PNG 畫布。");
+  const mission = post.mission; const gradient = ctx.createLinearGradient(0, 0, width, height); gradient.addColorStop(0, "#06251a"); gradient.addColorStop(1, "#0b130e"); ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height); ctx.strokeStyle = "rgba(251,191,36,.65)"; ctx.lineWidth = 3; ctx.strokeRect(48, 48, width - 96, height - 96); const x = 120; let y = 130; const write = (text: string, font: string, color: string, max = 3, gap = 1.25) => { ctx.font = font; ctx.fillStyle = color; for (const line of lines(ctx, text, 830).slice(0, max)) { ctx.fillText(line, x, y); y += Number(font.match(/(\d+)px/)?.[1] ?? 24) * gap; } };
+  if (mission) { write(`${getSocialMissionTypeLabel(mission.questType)} · ${mission.category}`, "700 26px system-ui", "#bbf7d0", 1); y += 50; write(mission.title, "800 72px system-ui", "#f0fdf4", 2, 1.1); y += 12; write(mission.objectiveTitle, "700 34px system-ui", "#fbbf24", 2); y += 12; write(mission.description, "500 28px system-ui", "#d1fae5", format === "threads" ? 2 : 3); y += 28; write("完成條件", "800 20px system-ui", "#fbbf24", 1); write(mission.completionCondition, "600 28px system-ui", "#f0fdf4", format === "threads" ? 2 : 3); y = Math.min(y + 24, height - 135); write(`${mission.estimatedMinutes} 分鐘 · ${difficultyLabel(mission.difficulty)} · +${mission.xp} XP`, "700 23px system-ui", "#d1fae5", 1); write(`獎勵：${mission.rewardLabel}`, "800 23px system-ui", "#fbbf24", 1); } else if (post.quote) { write("探索者語錄", "700 28px system-ui", "#bbf7d0", 1); y += 90; write(`「${post.quote.text}」`, "700 62px system-ui", "#f0fdf4", 6, 1.35); }
+  ctx.fillStyle = "#bbf7d0"; ctx.font = "700 22px system-ui"; ctx.fillText("Life Quest Map", x, height - 82); const id = mission?.id ?? post.quote!.id; const link = document.createElement("a"); link.download = `life-quest-map-${id}-${format}.png`; link.href = canvas.toDataURL("image/png"); link.click();
 }
 
-function drawText(context: CanvasRenderingContext2D, text: string, x: number, y: number, width: number, maxLines: number, lineHeight: number) {
-  const lines = canvasLines(context, text, width).slice(0, maxLines);
-  lines.forEach((line, index) => context.fillText(line, x, y + index * lineHeight));
-  return y + lines.length * lineHeight;
+function FilterRow({ label, options, value, onChange }: { label: string; options: Array<{ value: string; label: string }>; value: string; onChange: (value: string) => void }) {
+  return <fieldset className="mt-3"><legend className="text-xs font-bold text-emerald-100">{label}</legend><div className="mt-2 flex flex-wrap gap-1.5" role="radiogroup" aria-label={label}>{options.map((option) => <button key={option.value} type="button" role="radio" aria-checked={value === option.value} onClick={() => onChange(option.value)} className={`rounded-full px-2.5 py-1 text-xs font-bold ${value === option.value ? "bg-amber-300 text-zinc-950" : "bg-white/10 text-zinc-300"}`}>{option.label}</button>)}</div></fieldset>;
 }
 
-async function exportPost(post: { quote?: AdventureQuote; mission?: SocialMission }, format: SocialPostFormat, showSource: boolean) {
-  await document.fonts.ready;
-  const width = 1080; const height = socialPostHeight(format); const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
-  const context = canvas.getContext("2d"); if (!context) throw new Error("無法建立 PNG 畫布。");
-  const threads = format === "threads"; const mission = post.mission;
-  const gradient = context.createLinearGradient(0, 0, width, height); gradient.addColorStop(0, "#06251a"); gradient.addColorStop(.64, "#06130f"); gradient.addColorStop(1, "#0c130d"); context.fillStyle = gradient; context.fillRect(0, 0, width, height);
-  context.strokeStyle = "rgba(110,231,183,.09)"; context.lineWidth = 2; for (let x = -height; x < width; x += threads ? 190 : 100) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x + height, height); context.stroke(); }
-  context.strokeStyle = "rgba(251,191,36,.62)"; context.strokeRect(threads ? 42 : 48, threads ? 42 : 48, width - (threads ? 84 : 96), height - (threads ? 84 : 96));
-  const x = threads ? 112 : 150; const innerWidth = threads ? 790 : 760; let y = threads ? 103 : 164;
-  context.fillStyle = "#fbbf24"; context.fillRect(x, y - 16, threads ? 13 : 18, threads ? 13 : 18); context.fillStyle = "#bbf7d0"; context.font = `700 ${threads ? 22 : 32}px system-ui`; context.fillText(mission ? `今日任務 · ${mission.category}` : "探索者語錄", x + (threads ? 28 : 42), y);
-  if (mission) {
-    y += threads ? 105 : 165; const titleFont = threads ? (mission.title.length > 18 ? 55 : 66) : (mission.title.length > 18 ? 72 : 88); context.fillStyle = "#f0fdf4"; context.font = `800 ${titleFont}px system-ui`; y = drawText(context, mission.title, x, y, innerWidth, threads ? 2 : 3, titleFont * 1.1);
-    y += threads ? 22 : 34; context.fillStyle = "#d1fae5"; context.font = `500 ${threads ? 24 : 31}px system-ui`; y = drawText(context, mission.description, x, y, innerWidth, threads ? 2 : 3, threads ? 35 : 45);
-    y += threads ? 28 : 42; context.fillStyle = "#fbbf24"; context.fillRect(x, y - 20, 4, threads ? 78 : 108); context.fillStyle = "#fbbf24"; context.font = `700 ${threads ? 16 : 20}px system-ui`; context.fillText("完成條件", x + 22, y); context.fillStyle = "#f0fdf4"; context.font = `600 ${threads ? 24 : 30}px system-ui`; y = drawText(context, mission.completionCondition, x + 22, y + (threads ? 31 : 40), innerWidth - 22, threads ? 3 : 4, threads ? 34 : 43);
-    context.fillStyle = "#d1fae5"; context.font = `700 ${threads ? 18 : 24}px system-ui`; context.fillText(`${mission.estimatedMinutes} 分鐘   ·   ${mission.difficulty === "easy" ? "簡單" : mission.difficulty === "normal" ? "普通" : "挑戰"}   ·   +${mission.xp} XP`, x, Math.min(y + 44, height - (threads ? 90 : 128)));
-  } else {
-    const quote = post.quote!; const size = threads ? (quote.text.length > 60 ? 43 : 54) : (quote.text.length > 60 ? 58 : 76); context.fillStyle = "#f0fdf4"; context.font = `700 ${size}px system-ui`; y = drawText(context, `「${quote.text}」`, x, threads ? 270 : 400, innerWidth, threads ? 4 : 7, size * 1.45);
-    const source = showSource ? formatAdventureQuoteAttribution(quote) : null; if (source) { context.fillStyle = "#a7f3d0"; context.font = `500 ${threads ? 22 : 30}px system-ui`; drawText(context, source, x, y + 20, innerWidth, 2, threads ? 32 : 42); }
-  }
-  context.fillStyle = "rgba(209,250,229,.75)"; context.font = `700 ${threads ? 21 : 28}px system-ui`; context.fillText("Life Quest Map", x, height - (threads ? 64 : 108));
-  if (!mission) { context.fillStyle = "rgba(251,191,36,.85)"; context.font = `700 ${threads ? 14 : 17}px system-ui`; context.fillText("KEEP EXPLORING", width - (threads ? 250 : 305), height - (threads ? 64 : 108)); }
-  const link = document.createElement("a"); link.download = `life-quest-map-${mission?.id ?? post.quote!.id}-${format}.png`; link.href = canvas.toDataURL("image/png"); link.click();
+function MissionList({ missions, selectedId, onSelect }: { missions: SocialMission[]; selectedId: string; onSelect: (id: string) => void }) {
+  if (!missions.length) return <p role="status" className="mt-4 rounded-lg border border-dashed border-white/15 p-4 text-sm text-zinc-400">沒有符合條件的公開任務，試著調整搜尋或篩選。</p>;
+  return <div className="mt-3 max-h-[40dvh] space-y-2 overflow-y-auto pr-1">{missions.map((mission) => <button key={mission.id} type="button" onClick={() => onSelect(mission.id)} className={`w-full rounded-lg border p-3 text-left ${mission.id === selectedId ? "border-amber-300/70 bg-amber-300/10" : mission.questType === "main" ? "border-emerald-200/30 bg-emerald-950/20" : "border-white/10 bg-black/15 hover:border-emerald-300/40"}`}><p className="text-xs font-bold text-amber-100">{getSocialMissionTypeLabel(mission.questType)} · {mission.category}</p><p className="mt-1 text-base font-black text-zinc-50">{mission.title}</p><p className="text-sm font-semibold text-emerald-100">{mission.objectiveTitle}</p><p className="mt-1 text-xs text-zinc-400">{mission.estimatedMinutes} 分鐘 · {difficultyLabel(mission.difficulty)} · +{mission.xp} XP</p><p className="mt-1 text-xs text-amber-100">{mission.rewardLabel}</p></button>)}</div>;
+}
+
+function CustomMissionEditor({ mission, onChange }: { mission: SocialMission; onChange: (patch: Partial<SocialMission>) => void }) {
+  const text = (key: "title" | "objectiveTitle" | "description" | "completionCondition" | "rewardLabel", label: string, hint: string) => <label className="block text-xs font-bold text-zinc-300">{label}<span className="mt-1 block font-normal text-zinc-500">{hint}</span><input aria-label={label} value={mission[key]} onChange={(event) => onChange({ [key]: safeText(event.target.value) })} className="field-control mt-1 text-sm" /></label>;
+  return <details className="mt-4 border-t border-white/10 pt-4"><summary className="cursor-pointer text-sm font-bold text-amber-100">自訂本次任務</summary><div className="mt-3 space-y-3">{text("title", "RPG 任務名稱", "用較有冒險感的名稱包裝任務")}{text("objectiveTitle", "現實目標", "實際要完成的事情")}{text("description", "任務說明", "一句讓人理解這個關卡的說明")}{text("completionCondition", "完成條件", "完成後應該看見什麼")}{text("rewardLabel", "成長獎勵", "留白時使用「成長經驗 +1」")}<div className="grid grid-cols-2 gap-2"><label className="text-xs">任務類型<select aria-label="自訂任務類型" value={mission.questType} onChange={(event) => onChange({ questType: event.target.value as SocialMissionType })} className="field-control mt-1 text-sm">{socialMissionTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="text-xs">成長分類<select aria-label="自訂成長分類" value={mission.category} onChange={(event) => onChange({ category: event.target.value as SocialMissionCategory })} className="field-control mt-1 text-sm">{socialMissionCategories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="text-xs">難度<select aria-label="自訂難度" value={mission.difficulty} onChange={(event) => onChange({ difficulty: event.target.value as QuestDifficulty })} className="field-control mt-1 text-sm">{difficulties.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label className="text-xs">預估時間<input aria-label="預估時間" type="number" min="1" value={mission.estimatedMinutes} onChange={(event) => onChange({ estimatedMinutes: Math.max(1, Number(event.target.value) || 1) })} className="field-control mt-1 text-sm" /></label><label className="text-xs">XP<input aria-label="XP" type="number" min="0" value={mission.xp} onChange={(event) => onChange({ xp: Math.max(0, Math.floor(Number(event.target.value) || 0)) })} className="field-control mt-1 text-sm" /></label></div></div></details>;
 }
 
 export function SocialStudio() {
-  const [type, setType] = useState<"quote" | "mission">("quote"); const [query, setQuery] = useState(""); const [format, setFormat] = useState<SocialPostFormat>("portrait"); const [showSource, setShowSource] = useState(true); const [selectedQuoteId, setSelectedQuoteId] = useState(adventureQuotes.find((quote) => quote.enabled)?.id ?? adventureQuotes[0].id); const [selectedMissionId, setSelectedMissionId] = useState(socialMissions[0].id); const [category, setCategory] = useState<SocialMissionCategory | "all">("all"); const [custom, setCustom] = useState<SocialMission | null>(null); const [notice, setNotice] = useState("");
-  const quote = adventureQuotes.find((item) => item.id === selectedQuoteId) ?? adventureQuotes[0]; const selectedMission = custom ?? socialMissions.find((item) => item.id === selectedMissionId) ?? socialMissions[0];
-  const quoteMatches = useMemo(() => { const needle = query.trim().toLowerCase(); return adventureQuotes.filter((item) => item.enabled && (!needle || [item.id, item.text, item.author, item.speaker, item.work, item.tags?.join(" ")].filter(Boolean).join(" ").toLowerCase().includes(needle))); }, [query]);
-  const missionMatches = useMemo(() => { const needle = query.trim().toLowerCase(); return socialMissions.filter((item) => (category === "all" || item.category === category) && (!needle || [item.id, item.title, item.description, item.completionCondition, item.category].join(" ").toLowerCase().includes(needle))); }, [category, query]);
-  const categoryOptions: Array<SocialMissionCategory | "all"> = ["all", ...socialMissionCategories];
-  const activePost = type === "mission" ? { mission: selectedMission } : { quote };
-  const chooseAnother = () => { if (type === "quote") { const candidates = adventureQuotes.filter((item) => item.enabled && item.id !== quote.id); setSelectedQuoteId(candidates[Math.floor(Math.random() * candidates.length)]?.id ?? quote.id); } else { const candidates = missionMatches.filter((item) => item.id !== selectedMission.id); setCustom(null); setSelectedMissionId(candidates[Math.floor(Math.random() * candidates.length)]?.id ?? selectedMission.id); } };
-  const copyCaption = async () => { const content = type === "mission" ? createMissionCaption(selectedMission) : `「${quote.text}」${showSource && formatAdventureQuoteAttribution(quote) ? `\n${formatAdventureQuoteAttribution(quote)}` : ""}\n\nLife Quest Map\nKEEP EXPLORING`; try { await navigator.clipboard.writeText(content); setNotice("貼文文案已複製。") } catch { setNotice("無法使用剪貼簿，請手動複製文案。") } };
-  const previewHref = type === "mission" ? `/social-studio/preview?type=mission&mission=${encodeURIComponent(selectedMission.id)}&format=${format}` : `/social-studio/preview?type=quote&quote=${encodeURIComponent(quote.id)}&format=${format}&source=${showSource ? "1" : "0"}`;
-  const ratio = format === "portrait" ? "4 / 5" : format === "threads" ? "4 / 3" : "1 / 1";
-  return <main className="min-h-dvh px-4 py-7 text-zinc-100 sm:px-6 lg:px-10"><div className="mx-auto max-w-7xl"><header className="mb-8 max-w-3xl"><p className="text-xs font-bold tracking-[.18em] text-amber-200">MAPMAKER&apos;S DESK</p><h1 className="mt-2 text-3xl font-black tracking-tight sm:text-5xl">社群貼文產生器</h1><p className="mt-3 text-sm leading-6 text-zinc-300">選一段語錄，或從公開編輯任務清單建立今日任務貼文；不會讀取你的私人任務、日記或帳號資料。</p></header><div className="mb-5 flex gap-2" role="tablist" aria-label="貼文類型"><button type="button" role="tab" aria-selected={type === "quote"} onClick={() => { setType("quote"); setQuery(""); }} className={`rounded-lg px-4 py-2 text-sm font-bold ${type === "quote" ? "bg-amber-300 text-zinc-950" : "border border-white/15 text-zinc-200"}`}>語錄</button><button type="button" role="tab" aria-selected={type === "mission"} onClick={() => { setType("mission"); setQuery(""); }} className={`rounded-lg px-4 py-2 text-sm font-bold ${type === "mission" ? "bg-amber-300 text-zinc-950" : "border border-white/15 text-zinc-200"}`}>今日任務</button></div><div className="grid gap-6 xl:grid-cols-[23rem_minmax(0,1fr)]"><section className="game-card p-4 sm:p-5"><label className="text-sm font-bold text-emerald-100">{type === "mission" ? "搜尋任務" : "搜尋語錄"}</label><div className="relative mt-2"><MagnifyingGlass className="pointer-events-none absolute left-3 top-3 size-5 text-emerald-200/70" /><input value={query} onChange={(event) => setQuery(event.target.value)} className="field-control pl-10" placeholder={type === "mission" ? "任務名稱、內容或分類" : "文字、作者或 ID"} /></div>{type === "mission" ? <><div className="mt-3 flex flex-wrap gap-1.5">{categoryOptions.map((item) => <button key={item} type="button" onClick={() => setCategory(item)} className={`rounded-full px-2.5 py-1 text-xs font-bold ${category === item ? "bg-emerald-300 text-emerald-950" : "bg-white/10 text-zinc-300"}`}>{item === "all" ? "全部" : item}</button>)}</div><p className="mt-3 text-xs text-zinc-400">目前找到 {missionMatches.length} 則公開任務</p><div className="mt-3 max-h-[36dvh] space-y-2 overflow-y-auto pr-1">{missionMatches.map((item) => <button key={item.id} type="button" onClick={() => { setCustom(null); setSelectedMissionId(item.id); }} className={`w-full rounded-lg border p-3 text-left ${item.id === selectedMission.id && !custom ? "border-amber-300/70 bg-amber-300/10" : "border-white/10 bg-black/15 hover:border-emerald-300/40"}`}><p className="text-sm font-bold text-zinc-100">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-zinc-400">{item.category} · {item.estimatedMinutes} 分鐘 · +{item.xp} XP</p></button>)}</div><details className="mt-4 border-t border-white/10 pt-4"><summary className="cursor-pointer text-sm font-bold text-amber-100">自訂本次任務</summary><div className="mt-3 space-y-2">{(["title", "description", "completionCondition"] as const).map((field) => <input key={field} value={selectedMission[field]} onChange={(event) => setCustom({ ...selectedMission, id: "custom-mission", [field]: event.target.value })} className="field-control text-sm" aria-label={field === "title" ? "任務名稱" : field === "description" ? "任務說明" : "完成條件"} placeholder={field === "title" ? "任務名稱" : field === "description" ? "任務說明" : "完成條件"} />)}<div className="grid grid-cols-2 gap-2"><input type="number" min="1" value={selectedMission.estimatedMinutes} onChange={(event) => setCustom({ ...selectedMission, id: "custom-mission", estimatedMinutes: Math.max(1, Number(event.target.value)) })} className="field-control text-sm" aria-label="預估時間" /><input type="number" min="0" value={selectedMission.xp} onChange={(event) => setCustom({ ...selectedMission, id: "custom-mission", xp: Math.max(0, Number(event.target.value)) })} className="field-control text-sm" aria-label="XP" /></div></div></details></> : <><p className="mt-3 text-xs text-zinc-400">目前找到 {quoteMatches.length} 則語錄</p><div className="mt-3 max-h-[45dvh] space-y-2 overflow-y-auto pr-1">{quoteMatches.map((item) => <button key={item.id} type="button" onClick={() => setSelectedQuoteId(item.id)} className={`w-full rounded-lg border p-3 text-left ${item.id === quote.id ? "border-amber-300/70 bg-amber-300/10" : "border-white/10 bg-black/15 hover:border-emerald-300/40"}`}><p className="line-clamp-2 text-sm font-bold leading-6 text-zinc-100">{item.text}</p><p className="mt-1 truncate text-xs text-zinc-400">{item.id}</p></button>)}</div></>}</section><section className="min-w-0"><div className="game-card p-4 sm:p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold text-emerald-100">輸出格式</p><div className="mt-2 flex flex-wrap gap-2">{formats.map((option) => <button key={option.value} type="button" onClick={() => setFormat(option.value)} className={`rounded-lg border px-3 py-2 text-left text-sm ${format === option.value ? "border-amber-300 bg-amber-300 text-zinc-950" : "border-white/15 text-zinc-200"}`}><span className="block font-bold">{option.label}</span><span className="block text-xs opacity-75">{option.detail}</span></button>)}</div></div>{type === "quote" ? <button type="button" onClick={() => setShowSource((value) => !value)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 px-3 text-sm font-bold">{showSource ? <Eye className="size-4" /> : <EyeSlash className="size-4" />}{showSource ? "顯示出處" : "隱藏出處"}</button> : null}</div><div className="mt-5 overflow-hidden rounded-lg border border-emerald-200/20 bg-black/25 p-3 sm:p-6"><div className="social-post-stage" style={{ aspectRatio: ratio }}><div className="social-post-scale"><SocialPostCard {...activePost} format={format} showSource={showSource} /></div></div></div><div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><button type="button" onClick={chooseAnother} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 text-sm font-bold"><Shuffle className="size-4" />換一個{type === "mission" ? "任務" : "語錄"}</button><button type="button" onClick={() => void copyCaption()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 text-sm font-bold"><Copy className="size-4" />複製貼文文案</button><button type="button" onClick={() => void exportPost(activePost, format, showSource).then(() => setNotice("PNG 已下載。")).catch((error: unknown) => setNotice(error instanceof Error ? error.message : "PNG 產生失敗。"))} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-3 text-sm font-black text-emerald-950"><DownloadSimple className="size-4" weight="bold" />下載 PNG</button><a href={previewHref} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-amber-300/40 px-3 text-sm font-bold text-amber-100"><Sparkle className="size-4" />純預覽頁</a></div>{notice ? <p role="status" className="mt-3 text-sm font-semibold text-emerald-200">{notice}</p> : null}</div></section></div></div></main>;
+  const [mode, setMode] = useState<"quote" | "mission">("quote"); const [query, setQuery] = useState(""); const [format, setFormat] = useState<SocialPostFormat>("portrait"); const [missionType, setMissionType] = useState<MissionFilter>("all"); const [category, setCategory] = useState<SocialMissionCategory | "all">("all"); const [selectedId, setSelectedId] = useState(socialMissions[0].id); const [custom, setCustom] = useState<SocialMission | null>(null); const [notice, setNotice] = useState(""); const [isExporting, setIsExporting] = useState(false);
+  const selectedQuote = adventureQuotes.find((quote) => quote.enabled) ?? adventureQuotes[0];
+  const missions = useMemo(() => { const term = query.trim().toLowerCase(); return socialMissions.filter((mission) => (missionType === "all" || mission.questType === missionType) && (category === "all" || mission.category === category) && (!term || [mission.id, mission.title, mission.objectiveTitle, mission.description, mission.completionCondition, getSocialMissionTypeLabel(mission.questType), mission.category, mission.rewardLabel, mission.steps?.join(" ")].join(" ").toLowerCase().includes(term))); }, [category, missionType, query]);
+  useEffect(() => { if (custom) return; if (missions.length && !missions.some((mission) => mission.id === selectedId)) setSelectedId(missions[0].id); }, [custom, missions, selectedId]);
+  const selected = custom ?? socialMissions.find((mission) => mission.id === selectedId) ?? socialMissions[0];
+  const updateCustom = (patch: Partial<SocialMission>) => setCustom((current) => ({ ...(current ?? createCustom(selected)), ...patch, rewardLabel: patch.rewardLabel === "" ? "成長經驗 +1" : (patch.rewardLabel ?? current?.rewardLabel ?? "成長經驗 +1"), steps: undefined }));
+  const valid = Boolean(selected.title && selected.objectiveTitle && selected.completionCondition && selected.rewardLabel);
+  const copy = async () => { if (!valid) { setNotice("請先填寫 RPG 名稱、現實目標、完成條件與成長獎勵。"); return; } try { await navigator.clipboard.writeText(createMissionCaption(selected)); setNotice("貼文文案已複製。"); } catch { setNotice("無法使用剪貼簿，請手動複製文案。"); } };
+  const handleDownload = async () => { if (isExporting) return; try { setIsExporting(true); await exportPost(mode === "mission" ? { mission: selected } : { quote: selectedQuote }, format); setNotice("PNG 已下載。"); } catch (error) { setNotice(error instanceof Error ? error.message : "PNG 產生失敗。"); } finally { setIsExporting(false); } };
+  const chooseAnother = () => { const candidates = missions.filter((mission) => mission.id !== selected.id); if (candidates.length) { setCustom(null); setSelectedId(candidates[Math.floor(Math.random() * candidates.length)].id); } };
+  const ratio = format === "portrait" ? "4 / 5" : format === "square" ? "1 / 1" : "4 / 3";
+  const downloadButton = (
+    <button
+      type="button"
+      disabled={isExporting}
+      onClick={handleDownload}
+      aria-busy={isExporting}
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-3 font-black text-emerald-950 disabled:opacity-60"
+    >
+      <DownloadSimple className="size-4" aria-hidden="true" />
+      {isExporting ? "產生中…" : "下載 PNG"}
+    </button>
+  );
+  return (
+    <main className="min-h-dvh px-4 py-7 text-zinc-100 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-7 max-w-3xl">
+          <p className="text-xs font-bold tracking-[.18em] text-amber-200">MAPMAKER&apos;S DESK</p>
+          <h1 className="mt-2 text-3xl font-black sm:text-5xl">社群貼文產生器</h1>
+        </header>
+        <div className="mb-5 flex gap-2" role="tablist" aria-label="貼文類型">
+          <button type="button" role="tab" aria-selected={mode === "quote"} onClick={() => setMode("quote")} className={`rounded-lg px-4 py-2 font-bold ${mode === "quote" ? "bg-amber-300 text-zinc-950" : "border border-white/15"}`}>語錄</button>
+          <button type="button" role="tab" aria-selected={mode === "mission"} onClick={() => setMode("mission")} className={`rounded-lg px-4 py-2 font-bold ${mode === "mission" ? "bg-amber-300 text-zinc-950" : "border border-white/15"}`}>今日任務</button>
+        </div>
+        {mode === "quote" ? (
+          <section className="game-card p-5">
+            <SocialPostCard quote={selectedQuote} format={format} />
+            <div className="mt-4 flex flex-wrap gap-2">{formats.map((item) => <button key={item.value} type="button" onClick={() => setFormat(item.value)} className="rounded-lg border border-white/15 px-3 py-2 text-sm">{item.label}<span className="block text-xs opacity-70">{item.detail}</span></button>)}{downloadButton}</div>
+          </section>
+        ) : (
+          <div className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
+            <section className="game-card p-4">
+              <label className="text-sm font-bold text-emerald-100">搜尋公開任務<div className="relative mt-2"><MagnifyingGlass className="absolute left-3 top-3 size-4" /><input aria-label="搜尋公開任務" value={query} onChange={(event) => { setQuery(event.target.value); if (custom) setCustom(null); }} className="field-control pl-9" placeholder="名稱、目標、獎勵或步驟" /></div></label>
+              <FilterRow label="任務類型" value={missionType} onChange={(value) => { setMissionType(value as MissionFilter); setCustom(null); }} options={[{ value: "all", label: "全部" }, ...socialMissionTypes]} />
+              <FilterRow label="成長分類" value={category} onChange={(value) => { setCategory(value as SocialMissionCategory | "all"); setCustom(null); }} options={[{ value: "all", label: "全部" }, ...socialMissionCategories.map((value) => ({ value, label: value }))]} />
+              <p className="mt-3 text-xs text-zinc-400">目前找到 {missions.length} 則公開任務</p>
+              <MissionList missions={missions} selectedId={selectedId} onSelect={(id) => { setCustom(null); setSelectedId(id); }} />
+              <CustomMissionEditor mission={custom ?? createCustom(selected)} onChange={updateCustom} />
+            </section>
+            <section className="game-card min-w-0 p-4">
+              <div className="flex flex-wrap gap-2">{formats.map((item) => <button key={item.value} type="button" onClick={() => setFormat(item.value)} className="rounded-lg border border-white/15 px-3 py-2 text-sm">{item.label}<span className="block text-xs opacity-70">{item.detail}</span></button>)}</div>
+              <div className="mt-5 overflow-hidden rounded-lg bg-black/25 p-3"><div className="social-post-stage" style={{ aspectRatio: ratio }}><div className="social-post-scale"><SocialPostCard mission={selected} format={format} /></div></div></div>
+              {!valid ? <p role="status" className="mt-3 text-sm text-amber-100">請填寫 RPG 名稱、現實目標、完成條件與成長獎勵後再分享。</p> : null}
+              <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                <button type="button" onClick={chooseAnother} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 font-bold"><Shuffle className="size-4" />換一個任務</button>
+                <button type="button" onClick={() => void copy()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 font-bold"><Copy className="size-4" />複製貼文文案</button>
+                <a href={`/social-studio/preview?type=mission&mission=${encodeURIComponent(selected.id)}&format=${format}`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-amber-300/40 px-3 font-bold text-amber-100"><Sparkle className="size-4" />純預覽頁</a>
+                {downloadButton}
+              </div>
+              {notice ? <p role="status" className="mt-3 text-sm text-emerald-200">{notice}</p> : null}
+            </section>
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }
+
+

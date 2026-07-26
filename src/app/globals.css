@@ -326,6 +326,7 @@ select option {
 .social-post-footer { display: flex; justify-content: space-between; align-items: baseline; color: rgb(209 250 229 / .75); font-size: 28px; font-weight: 800; }
 .social-post-coordinate { color: rgb(251 191 36 / .86); font-size: 17px; letter-spacing: .15em; }
 .social-post-mission-title { max-width: 790px; margin: auto 0 24px; font-size: clamp(62px, 7vw, 88px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; overflow-wrap: anywhere; text-wrap: balance; }
+.social-post-mission-objective { max-width: 760px; margin: -8px 0 20px; color: #fbbf24; font-size: 32px; font-weight: 750; line-height: 1.25; overflow-wrap: anywhere; }
 .social-post-mission-description { max-width: 720px; margin: 0 0 34px; color: #d1fae5; font-size: 31px; line-height: 1.5; overflow-wrap: anywhere; }
 .social-post-mission-condition { max-width: 760px; border-left: 4px solid #fbbf24; padding: 4px 0 4px 24px; }
 .social-post-mission-condition span { color: #fbbf24; font-size: 20px; font-weight: 800; letter-spacing: .12em; }
@@ -333,6 +334,8 @@ select option {
 .social-post-mission-meta { display: flex; flex-wrap: wrap; gap: 14px; margin: 38px 0 auto; color: #d1fae5; font-size: 24px; font-weight: 750; }
 .social-post-mission-meta span, .social-post-mission-meta strong { border: 1px solid rgb(209 250 229 / .28); border-radius: 999px; padding: 10px 16px; }
 .social-post-mission-meta strong { border-color: rgb(251 191 36 / .62); color: #fbbf24; }
+.social-post-mission-reward { margin: 18px 0 0; color: #fbbf24; font-size: 25px; font-weight: 800; }
+.social-post-mission-steps { margin: 26px 0 auto; padding: 0; color: #d1fae5; font-size: 22px; line-height: 1.55; list-style: none; }
 .social-post-compass { position: absolute; right: 110px; top: 105px; width: 100px; height: 100px; border: 2px solid rgb(251 191 36 / .44); border-radius: 50%; }
 .social-post-compass::before, .social-post-compass::after { position: absolute; left: 50%; top: 50%; width: 2px; height: 128px; background: rgb(251 191 36 / .5); content: ""; transform: translate(-50%, -50%); }
 .social-post-compass::after { transform: translate(-50%, -50%) rotate(90deg); }
@@ -374,12 +377,14 @@ select option {
 .social-post-card--threads.social-post-card--mission .social-post-content { padding: 82px 112px 60px; }
 .social-post-card--threads.social-post-card--mission .social-post-compass { display: none; }
 .social-post-card--threads .social-post-mission-title { max-width: 770px; margin: 50px 0 16px; font-size: clamp(50px, 5.5vw, 66px); line-height: 1.08; }
+.social-post-card--threads .social-post-mission-objective { margin: -6px 0 14px; font-size: 25px; }
 .social-post-card--threads .social-post-mission-description { max-width: 690px; margin-bottom: 25px; font-size: 24px; line-height: 1.42; }
 .social-post-card--threads .social-post-mission-condition { max-width: 760px; border-left-width: 3px; padding-left: 18px; }
 .social-post-card--threads .social-post-mission-condition span { font-size: 16px; }
 .social-post-card--threads .social-post-mission-condition p { margin-top: 6px; font-size: 25px; line-height: 1.35; }
 .social-post-card--threads .social-post-mission-meta { gap: 10px; margin-top: 24px; font-size: 18px; }
 .social-post-card--threads .social-post-mission-meta span, .social-post-card--threads .social-post-mission-meta strong { padding: 7px 12px; }
+.social-post-card--threads .social-post-mission-reward { margin-top: 12px; font-size: 18px; }
 .social-post-card--threads .social-post-compass { right: 92px; top: 78px; width: 62px; height: 62px; border-color: rgb(251 191 36 / .22); opacity: .46; }
 .social-post-card--threads .social-post-compass::before, .social-post-card--threads .social-post-compass::after { height: 78px; }
 .social-post-card--threads .social-post-compass span { border-right-width: 6px; border-left-width: 6px; border-bottom-width: 20px; }

@@ -42,16 +42,21 @@ export type QuestDifficulty = "easy" | "normal" | "hard";
 
 /** Public, editorial mission content used only by Social Studio. Never derived from a user's quests. */
 export type SocialMissionCategory = "整理" | "行動" | "探索" | "關係" | "休息" | "創作" | "學習";
+export type SocialMissionType = "main" | "side" | "daily" | "hidden" | "micro";
 
 export interface SocialMission {
   id: string;
   title: string;
+  objectiveTitle: string;
   description: string;
   completionCondition: string;
   category: SocialMissionCategory;
+  questType: SocialMissionType;
   estimatedMinutes: number;
   difficulty: QuestDifficulty;
   xp: number;
+  rewardLabel: string;
+  steps?: string[];
   optionalPrompt?: string;
 }
 

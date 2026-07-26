@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { AdventureQuote, SocialMission } from "@/types";
 import { formatAdventureQuoteAttribution } from "@/lib/adventureQuoteAttribution";
+import { getSocialMissionTypeLabel } from "@/lib/socialMissionMeta";
 
 export type SocialPostFormat = "portrait" | "square" | "threads";
 
@@ -34,11 +35,14 @@ export function SocialPostCard({ quote, mission, format, showSource = true, clas
       <div className="social-post-frame" aria-hidden="true" />
       <div className="social-post-content">
         {mission ? <>
-          <div className="social-post-kicker"><span className="social-post-mark" />今日任務 · {mission.category}</div>
+          <div className="social-post-kicker"><span className="social-post-mark" />{getSocialMissionTypeLabel(mission.questType)} · {mission.category}</div>
           <h1 className="social-post-mission-title">{mission.title}</h1>
+          <h2 className="social-post-mission-objective">{mission.objectiveTitle}</h2>
           <p className="social-post-mission-description">{mission.description}</p>
           <div className="social-post-mission-condition"><span>完成條件</span><p>{mission.completionCondition}</p></div>
           <div className="social-post-mission-meta"><span>{mission.estimatedMinutes} 分鐘</span><span>{difficultyLabel(mission.difficulty)}</span><strong>+{mission.xp} XP</strong></div>
+          <p className="social-post-mission-reward">獎勵：{mission.rewardLabel}</p>
+          {format === "portrait" && mission.steps?.length ? <ol className="social-post-mission-steps">{mission.steps.slice(0, 3).map((step, index) => <li key={step}>{index + 1}. {step}</li>)}</ol> : null}
           <div className="social-post-footer"><span>Life Quest Map</span></div>
         </> : <>
           <div className="social-post-kicker"><span className="social-post-mark" />探索者語錄</div>
