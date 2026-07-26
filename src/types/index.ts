@@ -40,6 +40,21 @@ export type QuestCategory = GrowthFocus;
 
 export type QuestDifficulty = "easy" | "normal" | "hard";
 
+/** Public, editorial mission content used only by Social Studio. Never derived from a user's quests. */
+export type SocialMissionCategory = "整理" | "行動" | "探索" | "關係" | "休息" | "創作" | "學習";
+
+export interface SocialMission {
+  id: string;
+  title: string;
+  description: string;
+  completionCondition: string;
+  category: SocialMissionCategory;
+  estimatedMinutes: number;
+  difficulty: QuestDifficulty;
+  xp: number;
+  optionalPrompt?: string;
+}
+
 export type QuestStatus = "pending" | "completed";
 
 export type QuestPriority = "low" | "normal" | "high";
