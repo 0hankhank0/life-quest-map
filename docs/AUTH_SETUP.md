@@ -27,7 +27,7 @@ The app's `/auth/callback` exchanges Supabase's authorization code for a cookie 
 
 Supabase OAuth session handling is complete. Google and Facebook login are optional and controlled by their respective `NEXT_PUBLIC_AUTH_*_ENABLED` feature flags; Facebook remains disabled by default.
 
-Before cloud save is enabled, signing in establishes a user identity only. Guest progress remains in this browser's `lifeQuestMap:v0.1` LocalStorage entry. Once the `user_saves` migration is applied, signed-in progress uses a separate account-specific cache and cloud JSONB save; signing out and switching identities never delete either cache.
+Before the migration is applied, signing in establishes an identity and account-local cache only. Once every `user_saves` migration is applied, signed-in progress uses a separate account-specific cache and cloud JSONB save; signing out and switching identities never delete either cache.
 
 OAuth does not request Drive, Calendar, or Contacts permissions. Cloud saves remain unavailable until the migration described below is manually applied.
 

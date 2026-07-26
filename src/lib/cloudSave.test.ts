@@ -42,4 +42,20 @@ describe("user_saves migration", () => {
     expect(sql).not.toMatch(/grant[^;]*delete[^;]*authenticated/i);
     expect(sql).not.toMatch(/grant[^;]*(insert|update)[^;]*anon/i);
   });
+
+  it("limits the JSONB payload size in the follow-up migration", () => {
+    const sql = readFileSync("supabase/migrations/20260724_limit_user_save_size.sql", "utf8");
+    expect(sql).toMatch(/octet_length\(save_data::text\)\s*<=\s*1048576/i);
+    expect(sql).toMatch(/drop constraint if exists/i);
+  });
+
+  it("grants only signed-in reads and writes after revoking all other table privileges", () => {
+    const sql = readFileSync("supabase/migrations/20260725_restrict_user_saves_privileges.sql", "utf8");
+    expect(sql).toMatch(/^begin;[\s\S]*commit;\s*$/i);
+    expect(sql).toMatch(/revoke all privileges\s+on table public\.user_saves\s+from anon, authenticated;/i);
+    expect(sql).toMatch(/revoke all privileges\s+on table public\.user_saves\s+from public;/i);
+    expect(sql).toMatch(/grant select, insert, update\s+on table public\.user_saves\s+to authenticated;/i);
+    expect(sql).not.toMatch(/grant[^;]*\b(delete|truncate|trigger|references)\b[^;]*authenticated/i);
+    expect(sql).not.toMatch(/grant[^;]*\b(select|insert|update|delete|truncate|trigger|references)\b[^;]*anon/i);
+  });
 });

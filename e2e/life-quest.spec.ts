@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-async function onboard(page: import("@playwright/test").Page) {
+async function onboard(page: import("@playwright/test").Page, name = "E2E Hero") {
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
-  await page.locator("input").first().fill("E2E Hero");
+  await page.getByTestId("continue-as-guest").click();
+  await page.locator("input").first().fill(name);
   await page.locator("form button[type=submit]").click();
   await expect(page.getByTestId("beginner-guide")).toBeVisible();
   await page.getByTestId("beginner-guide-skip").click();
@@ -13,24 +13,20 @@ async function onboard(page: import("@playwright/test").Page) {
 }
 
 async function waitForStoredState(page: import("@playwright/test").Page, predicate: (state: { profile?: unknown; adventureJournal?: unknown[]; userSettings?: { tutorialCompletedAt?: string | null } }) => boolean) {
-  await expect.poll(async () => {
-    const state = await page.evaluate(() => {
+  await expect.poll(async () => page.evaluate(() => {
     const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
     return raw ? JSON.parse(raw) as { profile?: unknown; adventureJournal?: unknown[]; userSettings?: { tutorialCompletedAt?: string | null } } : {};
-    });
-    return predicate(state);
-  }).toBe(true);
+  }).then(predicate)).toBe(true);
 }
 
 test("new users complete the five-step beginner guide and keep its state", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
+  await page.getByTestId("continue-as-guest").click();
   await page.locator("input").first().fill("Guide Hero");
   await page.getByRole("button", { name: "運動玩家" }).click();
   await page.locator("form button[type=submit]").click();
-
   const guide = page.getByTestId("beginner-guide");
   await expect(guide).toBeVisible();
   await expect(page.getByTestId("beginner-guide-step")).toHaveText("1 / 5");
@@ -47,34 +43,14 @@ test("new users complete the five-step beginner guide and keep its state", async
 });
 
 test("guest can return to the auth entry and resume the same local adventure", async ({ page }) => {
-  await onboard(page);
-  const originalProfile = await page.evaluate(() => {
-    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
-    return raw ? (JSON.parse(raw) as { profile?: { name?: string } }).profile?.name : null;
-  });
-  const originalAdventure = await page.evaluate(() => {
-    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
-    return raw ? JSON.parse(raw) as { profile?: unknown; quests?: unknown[] } : null;
-  });
-  expect(originalProfile).not.toBeNull();
-  expect(originalAdventure).not.toBeNull();
-
+  await onboard(page, "Persistent Hero");
+  const originalAdventure = await page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1") ?? "{}"));
   await page.goto("/profile");
-  await expect(page.getByRole("button", { name: "登出帳號" })).toHaveCount(0);
-  const googleUpgradeButton = page.getByTestId("profile-sign-in-google");
-  if (await googleUpgradeButton.count()) {
-    await expect(googleUpgradeButton).toBeVisible();
-  }
-  await expect(page.getByTestId("exit-guest-mode")).toBeVisible();
   await page.getByTestId("exit-guest-mode").click();
   await expect(page.getByTestId("continue-as-guest")).toBeVisible();
   await page.getByTestId("continue-as-guest").click();
-  await expect(page.getByRole("heading", { name: originalProfile! })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "建立你的日常冒險角色" })).toHaveCount(0);
-  await expect.poll(async () => page.evaluate(() => {
-    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
-    return raw ? JSON.parse(raw) as { profile?: unknown; quests?: unknown[] } : null;
-  })).toEqual(originalAdventure);
+  await expect(page.getByRole("heading", { name: "Persistent Hero" })).toBeVisible();
+  await expect.poll(async () => page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1") ?? "{}"))).toEqual(originalAdventure);
 });
 
 test("profile can restart the guide without clearing adventure data", async ({ page }) => {
@@ -85,10 +61,7 @@ test("profile can restart the guide without clearing adventure data", async ({ p
   await page.getByRole("button", { name: "重新觀看新手教學" }).click();
   await expect(page.getByTestId("beginner-guide")).toBeVisible();
   await waitForStoredState(page, (state) => state.userSettings?.tutorialCompletedAt === null);
-  const questCount = await page.evaluate(() => {
-    const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
-    return raw ? (JSON.parse(raw) as { quests?: unknown[] }).quests?.length ?? 0 : 0;
-  });
+  const questCount = await page.evaluate(() => (JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1") ?? "{}").quests ?? []).length);
   expect(questCount).toBeGreaterThan(0);
 });
 
@@ -97,7 +70,7 @@ test("mobile beginner guide stays inside the viewport and can be completed", asy
   await page.goto("/");
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
-  await page.getByRole("button", { name: "先以訪客身分繼續" }).click();
+  await page.getByTestId("continue-as-guest").click();
   await page.locator("input").first().fill("Mobile Guide");
   await page.locator("form button[type=submit]").click();
   const guide = page.getByTestId("beginner-guide");

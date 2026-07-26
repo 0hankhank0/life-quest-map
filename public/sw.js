@@ -1,10 +1,12 @@
 const CACHE_NAME = "life-quest-map-v0-3";
 const APP_SHELL = ["/", "/quests", "/map", "/skills", "/history", "/profile"];
-const STATIC_ASSETS = new Set(["/icon.svg", "/manifest.webmanifest"]);
+const STATIC_ASSETS = new Set(["/apple-touch-icon.png", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-512.png", "/manifest.webmanifest"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll([...APP_SHELL, ...STATIC_ASSETS])).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => Promise.allSettled([...APP_SHELL, ...STATIC_ASSETS].map((path) => cache.add(path))))
+      .then(() => self.skipWaiting())
   );
 });
 

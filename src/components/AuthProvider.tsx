@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isFacebookAuthEnabled, isGoogleAuthEnabled, isSupabaseConfigured } from "@/lib/supabase/config";
@@ -19,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [guestMode, setGuestMode] = useState(false);
+  const signInInFlight = useRef(false);
 
   useEffect(() => {
     setGuestMode(window.localStorage.getItem(AUTH_CHOICE_KEY) === "guest");
@@ -32,7 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.localStorage.removeItem(AUTH_CHOICE_KEY);
         setGuestMode(false);
       }
-      setIsAuthLoading(false);
+    }).catch(() => {
+      if (active) setUser(null);
+    }).finally(() => {
+      if (active) setIsAuthLoading(false);
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       const nextUser = session?.user ?? null;
@@ -47,10 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (provider: "google" | "facebook") => {
+    if (signInInFlight.current) return;
     const supabase = createSupabaseBrowserClient();
     if (!supabase) throw new Error("Auth is not configured.");
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}/auth/callback?next=/` } });
-    if (error) throw error;
+    signInInFlight.current = true;
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}/auth/callback?next=/` } });
+      if (error) throw error;
+    } finally {
+      signInInFlight.current = false;
+    }
   }, []);
   const continueAsGuest = useCallback(() => { window.localStorage.setItem(AUTH_CHOICE_KEY, "guest"); setGuestMode(true); }, []);
   const exitGuestMode = useCallback(() => { window.localStorage.removeItem(AUTH_CHOICE_KEY); setGuestMode(false); }, []);

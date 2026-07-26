@@ -1,24 +1,25 @@
 # Cloud save setup
 
-Life Quest Map stores one JSONB document per signed-in user in `public.user_saves`. The application uses the publishable key and the user's Supabase session only; it never needs a service-role key.
+Life Quest Map stores one JSONB document per signed-in user in `public.user_saves`. The browser uses only the Supabase publishable key and the user's session; never add a service-role key to client configuration.
 
 ## Storage scopes
 
-- Guest and legacy local progress: `lifeQuestMap:v0.1`
-- Signed-in cache: `lifeQuestMap:user:<user-id>:v1` (a `CloudSaveEnvelope` with state, revision, sync time, and dirty flag)
+- Guest progress: `lifeQuestMap:v0.1`
+- Signed-in cache: `lifeQuestMap:user:<user-id>:v1`
+- Conflict backups: `lifeQuestMap:conflictBackup:<user-id>:<timestamp>`
 
-These keys are deliberately separate. Signing in does not silently import guest data, signing out does not copy account data to the guest key, and a different account cannot load another account's key.
+These scopes are separate. Signing in does not silently import guest data, signing out does not delete guest or account cache, and one account cannot use another account's cache.
 
-## Apply the migration manually
+## Apply migrations manually
 
-Before cloud saves can work, an authorized project administrator must review and apply [20260723_create_user_saves.sql](../supabase/migrations/20260723_create_user_saves.sql) through the team's normal Supabase migration process. This change only adds the local migration file; the application treats a missing table as “雲端存檔尚未啟用” and retains account-local cache safely.
+An authorized administrator must review and apply every file in `supabase/migrations/` with the team's normal Supabase migration process. This repository does not apply remote migrations automatically.
 
-The migration enables RLS and provides only authenticated own-row select, insert, and update policies. It grants no anonymous writes and no delete permission. To verify manually, sign in as two different users and confirm that each can select/update only its own `user_id` row; requests for the other row should return no row or an RLS error.
+The policies permit authenticated users to select, insert, and update only their own row. Anonymous users have no access and authenticated users cannot delete rows. The save JSON is limited to 1 MiB. Verify with two accounts that neither can read or update the other account's row.
 
 ## First sign-in, offline behavior, and conflicts
 
-When an account has no cloud save but this device has a guest character, the user chooses either **將這台裝置的進度存入帳號** or **建立全新的帳號進度**. The guest key is never deleted.
+On first sign-in, a device with guest progress offers **import guest progress** or **create fresh account progress**. The guest key is never deleted.
 
-Every signed-in change is written to the account-local envelope immediately and marked dirty. A debounced sync uses the row revision as an optimistic concurrency check. Offline or failed syncs retain dirty data and retry once when the browser returns online.
+Every signed-in change first updates the account-local envelope and marks it dirty. A debounced optimistic update uses the cloud revision. If the cache is dirty but has the same revision as the cloud row, it is an interrupted local sync and is retried; it is not a conflict. A conflict is shown only when revisions differ and the versions differ.
 
-If another device has changed the row, automatic writes stop. The user can use the cloud version or explicitly overwrite it with this device's version; either action first saves a local conflict backup under `lifeQuestMap:conflictBackup:<user-id>:<timestamp>`. Signing out retains guest data, account cache, and cloud data.
+Offline and temporary cloud failures keep existing account cache usable and retry after the browser reconnects. If a real multi-device conflict occurs, the user may use the cloud version or explicitly overwrite cloud data with this device's version. Either choice keeps a conflict backup locally.

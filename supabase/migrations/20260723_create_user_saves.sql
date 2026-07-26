@@ -1,6 +1,6 @@
 create table if not exists public.user_saves (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  save_data jsonb not null check (jsonb_typeof(save_data) = 'object'),
+  save_data jsonb not null check (jsonb_typeof(save_data) = 'object' and octet_length(save_data::text) <= 1048576),
   schema_version integer not null check (schema_version >= 1),
   revision bigint not null default 1 check (revision >= 1),
   created_at timestamptz not null default now(),
