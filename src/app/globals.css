@@ -276,6 +276,28 @@ select option {
   overflow: hidden;
 }
 
+.social-post-preview-shell { position: relative; z-index: 0; overflow: hidden; border-radius: 8px; background: rgb(0 0 0 / .25); padding: .75rem; }
+.social-post-preview-shell::before { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.social-format-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
+.social-format-button { min-width: 10.5rem; border: 2px solid rgb(255 255 255 / .18); border-radius: .5rem; background: rgb(9 9 11 / .82); padding: .65rem .8rem; color: #e4e4e7; font-size: .875rem; font-weight: 800; text-align: left; transition: transform 150ms ease, border-color 150ms ease, background-color 150ms ease; }
+.social-format-button span, .social-format-button small { display: block; }
+.social-format-button small { margin-top: .12rem; color: #a1a1aa; font-weight: 700; }
+.social-format-button:hover:not(:disabled) { border-color: rgb(190 242 100 / .75); background: rgb(190 242 100 / .12); }
+.social-format-button:active:not(:disabled) { transform: translateY(1px); }
+.social-format-button:disabled { cursor: not-allowed; opacity: .5; }
+.social-format-button--selected { border-color: #bef264; background: #bef264; color: #18220b; box-shadow: 0 0 0 2px rgb(190 242 100 / .25); }
+.social-format-button--selected small { color: #365314; }
+.social-format-button:focus-visible, .social-tab:focus-visible, .social-download-button:focus-visible, .social-secondary-button:focus-visible { outline: 3px solid #fef08a; outline-offset: 3px; }
+.social-tab { border: 1px solid rgb(255 255 255 / .2); border-radius: .5rem; background: rgb(9 9 11 / .55); padding: .5rem 1rem; color: #e4e4e7; font-weight: 800; }
+.social-tab--active { border-color: #bef264; background: #bef264; color: #18220b; }
+.social-secondary-button, .social-download-button { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: .5rem; border-radius: .5rem; padding: .5rem .85rem; font-weight: 800; }
+.social-secondary-button { border: 1px solid rgb(255 255 255 / .2); background: rgb(9 9 11 / .55); color: #e4e4e7; }
+.social-secondary-button:hover { border-color: rgb(190 242 100 / .65); background: rgb(190 242 100 / .12); }
+.social-download-button { border: 1px solid #bef264; background: #bef264; color: #18220b; }
+.social-download-button:hover:not(:disabled) { background: #d9f99d; }
+.social-download-button:active:not(:disabled) { transform: translateY(1px); }
+.social-download-button:disabled { cursor: not-allowed; opacity: .6; }
+
 .social-post-scale {
   width: 1080px;
   height: var(--social-card-height, 1350px);
@@ -315,6 +337,8 @@ select option {
     repeating-linear-gradient(128deg, transparent 0 53px, rgb(110 231 183 / .09) 55px 57px, transparent 59px 109px);
   transform: rotate(-4deg);
 }
+
+.social-post-contours, .social-post-compass { pointer-events: none; }
 
 .social-post-frame { position: absolute; inset: 68px; border: 2px solid rgb(209 250 229 / .25); pointer-events: none; }
 .social-post-content { position: relative; display: flex; height: 100%; flex-direction: column; padding: 146px 150px 108px; }

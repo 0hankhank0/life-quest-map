@@ -1,4 +1,4 @@
-import { SocialPostCard, type SocialPostFormat } from "@/components/SocialPostCard";
+import { SocialPostCard, type SocialCardFormat } from "@/components/SocialPostCard";
 import { adventureQuotes } from "@/data/adventureQuotes";
 import { socialMissions } from "@/data/socialMissions";
 
@@ -6,7 +6,7 @@ export const metadata = { title: "Life Quest Map 社群貼文預覽", robots: { 
 
 export default async function SocialPostPreview({ searchParams }: { searchParams: Promise<{ type?: string; quote?: string; mission?: string; format?: string; source?: string }> }) {
   const params = await searchParams;
-  const format: SocialPostFormat = params.format === "square" || params.format === "threads" ? params.format : "portrait";
+  const format: SocialCardFormat = params.format === "square" ? "square" : params.format === "threads-wide" || params.format === "threads" ? "threads-wide" : "instagram-portrait";
   if (params.type === "mission") {
     const mission = socialMissions.find((item) => item.id === params.mission) ?? socialMissions[0];
     return <main className="social-post-export-page"><SocialPostCard mission={mission} format={format} /></main>;
