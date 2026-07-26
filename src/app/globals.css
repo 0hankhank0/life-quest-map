@@ -301,7 +301,7 @@ select option {
 .social-post-scale {
   width: 1080px;
   height: var(--social-card-height, 1350px);
-  transform: scale(calc(min(100vw - 4.5rem, 632px) / 1080));
+  transform: scale(var(--social-preview-scale, 0));
   transform-origin: top left;
 }
 
@@ -413,10 +413,6 @@ select option {
 .social-post-card--threads .social-post-compass::before, .social-post-card--threads .social-post-compass::after { height: 78px; }
 .social-post-card--threads .social-post-compass span { border-right-width: 6px; border-left-width: 6px; border-bottom-width: 20px; }
 .social-post-card--threads .social-post-compass span:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg) translateY(-23px); }.social-post-card--threads .social-post-compass span:nth-child(2) { transform: translate(-50%, -50%) rotate(90deg) translateY(-23px); }.social-post-card--threads .social-post-compass span:nth-child(3) { transform: translate(-50%, -50%) rotate(180deg) translateY(-23px); }.social-post-card--threads .social-post-compass span:nth-child(4) { transform: translate(-50%, -50%) rotate(270deg) translateY(-23px); }
-
-@media (max-width: 720px) {
-  .social-post-scale { transform: scale(calc((100vw - 4.5rem) / 1080)); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,
