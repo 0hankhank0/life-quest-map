@@ -318,6 +318,20 @@ select option {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.social-post-card[data-social-export="true"] {
+  width: 1080px !important;
+  min-width: 1080px !important;
+  max-width: none !important;
+  height: var(--social-card-height) !important;
+  min-height: var(--social-card-height) !important;
+  max-height: none !important;
+  transform: none !important;
+  scale: none !important;
+  zoom: 1 !important;
+  flex: none !important;
+  margin: 0 !important;
+}
+
 .social-post-card::before {
   position: absolute;
   inset: 48px;

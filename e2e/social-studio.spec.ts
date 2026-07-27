@@ -104,3 +104,47 @@ test("custom quote without attribution leaves no empty source punctuation", asyn
   await expect(page.getByTestId("social-post-card")).toContainText("只留下正文。"); await expect(page.getByTestId("social-post-card")).not.toContainText("undefined"); await expect(page.getByTestId("social-post-card")).not.toContainText("——");
   await page.getByRole("button", { name: "語錄庫" }).first().click(); await expect(page.getByRole("link", { name: /預覽/ })).toBeVisible();
 });
+
+test("quote library studio exposes search, source, theme, and a selectable result list", async ({ page }) => {
+  await page.goto("/social-studio");
+  await expect(page.getByLabel("搜尋內容、作者、作品或來源")).toBeVisible();
+  await expect(page.getByRole("group", { name: "來源類型" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "語錄主題" })).toBeVisible();
+  const results = page.getByRole("listbox", { name: "語錄搜尋結果" });
+  await expect(results).toBeVisible();
+  const first = results.getByRole("option").first();
+  await first.click();
+  await expect(first).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("social-post-card")).toBeVisible();
+});
+
+test("quote library search and filters narrow results with AND logic", async ({ page }) => {
+  await page.goto("/social-studio");
+  const results = page.getByRole("listbox", { name: "語錄搜尋結果" });
+  const before = await results.getByRole("option").count();
+  await page.getByLabel("搜尋內容、作者、作品或來源").fill("阿甘");
+  await expect(results.getByRole("option")).toHaveCount(1);
+  await page.getByRole("button", { name: "動漫／影視" }).click();
+  await expect(results.getByRole("option")).toHaveCount(1);
+  await page.getByRole("button", { name: "勇氣" }).click();
+  await expect(results.getByRole("option").count()).resolves.toBeLessThanOrEqual(before);
+});
+
+test("quote library shows a safe empty state instead of an unrelated fallback", async ({ page }) => {
+  await page.goto("/social-studio");
+  await page.getByLabel("搜尋內容、作者、作品或來源").fill("NO_MATCHING_QUOTE_98765");
+  await expect(page.getByText("沒有符合條件的語錄，試著調整搜尋或篩選。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "換一則語錄" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "複製貼文文案" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "下載 PNG" })).toBeDisabled();
+});
+
+test("custom quote mode hides quote-library controls while preserving the editor", async ({ page }) => {
+  await page.goto("/social-studio");
+  await page.getByRole("button", { name: "自訂語錄" }).click();
+  await expect(page.getByLabel("語錄正文")).toBeVisible();
+  await expect(page.getByLabel("搜尋內容、作者、作品或來源")).toHaveCount(0);
+  await expect(page.getByRole("listbox", { name: "語錄搜尋結果" })).toHaveCount(0);
+  await page.getByRole("button", { name: "語錄庫" }).click();
+  await expect(page.getByRole("listbox", { name: "語錄搜尋結果" })).toBeVisible();
+});
