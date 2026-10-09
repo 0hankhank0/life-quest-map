@@ -17,6 +17,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { HistoryPanel } from "@/components/life-quest/HistoryPanel";
 import { AdventureJournal } from "@/components/life-quest/AdventureJournal";
 import { PageHeader } from "@/components/PageHeader";
+import { Onboarding } from "@/components/life-quest/Onboarding";
 import { categoryLabels, occupationLabels, roleOptions, studentStageLabels } from "@/data/labels";
 import { getStrongestStat } from "@/lib/progression";
 import { calendarDateKey } from "@/lib/utils";
@@ -29,6 +30,7 @@ export function ProfilePanel() {
   const importInputRef = useRef<HTMLInputElement>(null);
   const [dataMessage, setDataMessage] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   if (!profile) {
     return null;
@@ -37,6 +39,12 @@ export function ProfilePanel() {
   if (historyOpen) {
     return <HistoryPanel state={state} onBack={() => setHistoryOpen(false)} />;
   }
+
+  if (editingProfile) {
+    return <Onboarding editing onCancel={() => setEditingProfile(false)} onComplete={() => { setEditingProfile(false); showToast("角色設定已儲存，冒險進度已保留。", "success"); }} />;
+  }
+
+  const setupPending = profile.setupCompletedAt === null;
 
   const completedQuests = state.quests.filter((quest) => quest.status === "completed");
   const strongestStat = getStrongestStat(state.stats);
@@ -56,6 +64,14 @@ export function ProfilePanel() {
         description="查看你的等級、總 EXP、最強能力、稱號與成就徽章。"
       />
 
+      <section className="game-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-zinc-50">{setupPending ? "角色設定可稍後補填" : "角色設定"}</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-400">{setupPending ? "目前使用預設角色。隨時補填名稱、人生階段、玩家風格與成長方向，已累積的進度會保留。" : "調整名稱、人生階段、玩家風格與成長方向。"}</p>
+        </div>
+        <button type="button" data-testid="edit-profile-setup" onClick={() => setEditingProfile(true)} className="min-h-11 shrink-0 rounded-lg border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10">{setupPending ? "補填角色設定" : "編輯角色設定"}</button>
+      </section>
+
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="game-card p-5">
           <div className="flex items-start gap-4">
@@ -66,10 +82,10 @@ export function ProfilePanel() {
               <p className="text-sm font-bold text-emerald-200">Lv {profile.level}</p>
               <h2 className="mt-1 text-3xl font-black text-zinc-50">{profile.name}</h2>
               <p className="mt-2 text-sm text-zinc-400">
-                {roleOptions.find((option) => option.value === profile.role)?.label}
+                {setupPending ? "直接體驗中" : roleOptions.find((option) => option.value === profile.role)?.label}
               </p>
               <p className="mt-1 text-sm font-bold text-emerald-100">
-                {occupationName}路線
+                {setupPending ? "角色偏好尚未設定" : `${occupationName}路線`}
               </p>
             </div>
           </div>
@@ -78,7 +94,7 @@ export function ProfilePanel() {
             <ProfileMetric label="總 EXP" value={profile.exp} />
             <ProfileMetric label="完成任務" value={completedQuests.length} />
             <ProfileMetric label="最強能力" value={categoryLabels[strongestStat]} />
-            <ProfileMetric label="職業路線" value={occupationName} />
+            <ProfileMetric label="職業路線" value={setupPending ? "尚未設定" : occupationName} />
           </div>
         </div>
 

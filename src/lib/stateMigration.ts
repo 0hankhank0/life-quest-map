@@ -191,7 +191,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     adventureJournal: normalizeAdventureJournal(source.adventureJournal),
     recentAdventureQuoteIds: uniqueIds(source.recentAdventureQuoteIds).slice(-5),
     completionQuoteEvents: normalizeCompletionQuoteEvents(source.completionQuoteEvents),
-    userSettings: { ...defaultUserSettings, ...(sourceSettings && (sourceSettings.theme === "system" || sourceSettings.theme === "dark") ? { theme: sourceSettings.theme } : {}), ...(sourceSettings && typeof sourceSettings.reducedMotion === "boolean" ? { reducedMotion: sourceSettings.reducedMotion } : {}), ...(sourceSettings && typeof sourceSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: sourceSettings.notificationsEnabled } : {}), tutorialCompletedAt }
+    userSettings: { ...defaultUserSettings, ...(sourceSettings && (sourceSettings.theme === "system" || sourceSettings.theme === "dark") ? { theme: sourceSettings.theme } : {}), ...(sourceSettings && typeof sourceSettings.reducedMotion === "boolean" ? { reducedMotion: sourceSettings.reducedMotion } : {}), ...(sourceSettings && typeof sourceSettings.notificationsEnabled === "boolean" ? { notificationsEnabled: sourceSettings.notificationsEnabled } : {}), ...(typeof sourceSettings?.tutorialDeferred === "boolean" ? { tutorialDeferred: sourceSettings.tutorialDeferred } : {}), tutorialCompletedAt }
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { ArrowRight, MapPin } from "@phosphor-icons/react";
+import { useRouter } from "next/navigation";
 import { useLifeQuest } from "@/components/LifeQuestProvider";
 import { useAuth } from "@/components/AuthProvider";
 import { mapLocations } from "@/data/defaults";
@@ -20,17 +21,19 @@ import type {
   StudentStage
 } from "@/types";
 
-export function Onboarding() {
-  const { onboard } = useLifeQuest();
+export function Onboarding({ editing = false, onComplete, onCancel }: { editing?: boolean; onComplete?: () => void; onCancel?: () => void }) {
+  const router = useRouter();
+  const { state, onboard, startDirectExperience } = useLifeQuest();
   const { user } = useAuth();
-  const [name, setName] = useState(() => String(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ""));
-  const [lifeStage, setLifeStage] = useState<LifeStage>("student");
-  const [studentStage, setStudentStage] = useState<StudentStage>("senior_high");
-  const [role, setRole] = useState<Role>("student");
-  const [occupation, setOccupation] = useState<OccupationCategory>("general");
-  const [customOccupationName, setCustomOccupationName] = useState("");
-  const [occupationSuggestion, setOccupationSuggestion] = useState("");
-  const [focuses, setFocuses] = useState<GrowthFocus[]>(["learning"]);
+  const profile = editing ? state.profile : null;
+  const [name, setName] = useState(() => profile?.name ?? String(user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ""));
+  const [lifeStage, setLifeStage] = useState<LifeStage>(profile?.lifeStage ?? "student");
+  const [studentStage, setStudentStage] = useState<StudentStage>(profile?.studentStage ?? "senior_high");
+  const [role, setRole] = useState<Role>(profile?.role ?? "student");
+  const [occupation, setOccupation] = useState<OccupationCategory>(profile?.occupation ?? "general");
+  const [customOccupationName, setCustomOccupationName] = useState(profile?.customOccupationName ?? "");
+  const [occupationSuggestion, setOccupationSuggestion] = useState(() => state.occupationSuggestions.findLast((item) => item.name === profile?.customOccupationName)?.note ?? "");
+  const [focuses, setFocuses] = useState<GrowthFocus[]>(profile?.focuses ?? ["learning"]);
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -56,6 +59,7 @@ export function Onboarding() {
       occupationSuggestion: lifeStage === "adult" ? occupationSuggestion : undefined,
       focuses
     });
+    onComplete?.();
   }
 
   function toggleFocus(focus: GrowthFocus) {
@@ -68,14 +72,23 @@ export function Onboarding() {
     });
   }
 
+  const Container = editing ? "div" : "main";
+
   return (
-    <main className="min-h-[100dvh] bg-zinc-950 px-4 py-6 text-zinc-100 sm:px-6">
-      {user ? <p className="mx-auto mb-3 max-w-5xl rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">已使用 {user.app_metadata.provider === "facebook" ? "Facebook" : "Google"} 登入：{user.email}</p> : null}
-      <div className="mx-auto grid min-h-[calc(100dvh-3rem)] max-w-5xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="space-y-5">
+    <Container className={editing ? "mx-auto max-w-3xl" : "min-h-[100dvh] bg-zinc-950 px-4 py-6 text-zinc-100 sm:px-6"}>
+      {user && !editing ? <p className="mx-auto mb-3 max-w-5xl rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">已使用 {user.app_metadata.provider === "facebook" ? "Facebook" : "Google"} 登入：{user.email}</p> : null}
+      <div className={editing ? "space-y-5" : "mx-auto grid min-h-[calc(100dvh-3rem)] max-w-5xl items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]"}>
+        {!editing ? <section className="space-y-5">
           <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-xs font-bold text-emerald-100">
             <MapPin className="size-4" weight="fill" />
             Life Quest Map
+          </div>
+          <div className="space-y-2">
+            <button type="button" data-testid="direct-experience" onClick={() => { startDirectExperience(); router.push("/"); }} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-300 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 sm:w-auto">
+              直接體驗
+              <ArrowRight className="size-4" weight="bold" />
+            </button>
+            <p className="text-sm leading-6 text-zinc-400">先用預設角色開始探索，角色、階段、風格與成長方向可在角色頁補填，教學也能稍後觀看。</p>
           </div>
           <div className="space-y-3">
             <h1 className="text-4xl font-black leading-tight text-zinc-50 sm:text-5xl">
@@ -99,9 +112,13 @@ export function Onboarding() {
               </span>
             ))}
           </div>
-        </section>
+        </section> : null}
 
         <form onSubmit={handleSubmit} className="game-card space-y-5 p-5 sm:p-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-black text-zinc-50">{editing ? "角色設定" : "先設定角色"}</h2>
+            <p className="text-sm leading-6 text-zinc-400">{editing ? "調整角色資料，已累積的 EXP、任務與冒險紀錄都會保留。" : "也可以先完成設定，再進入任務地圖。"}</p>
+          </div>
           <label className="block space-y-2">
             <span className="text-sm font-bold text-zinc-200">角色名稱</span>
             <input
@@ -234,7 +251,7 @@ export function Onboarding() {
           {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
 
           <div className="space-y-1 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-3 text-xs leading-5 text-zinc-300">
-            <p>先完成基本設定，進入後會有簡短教學說明怎麼開始。</p>
+            <p>{editing ? "儲存後即可繼續冒險，教學可從角色頁開啟。" : "選擇直接體驗可略過設定與教學；完成這份設定後則會開啟新手教學。"}</p>
             <p className="text-zinc-400">資料只保存在目前裝置，不會自動上傳；之後可在角色頁匯出備份。</p>
           </div>
 
@@ -242,11 +259,12 @@ export function Onboarding() {
             type="submit"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-300 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 active:translate-y-px"
           >
-            進入任務地圖
+            {editing ? "儲存角色設定" : "進入任務地圖"}
             <ArrowRight className="size-4" weight="bold" />
           </button>
+          {editing ? <button type="button" onClick={onCancel} className="min-h-11 w-full rounded-lg border border-white/15 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-white/5">稍後再填</button> : null}
         </form>
       </div>
-    </main>
+    </Container>
   );
 }

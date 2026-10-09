@@ -86,6 +86,7 @@ export interface UserProfile {
   level: number;
   exp: number;
   createdAt: string;
+  setupCompletedAt?: string | null;
 }
 
 export interface Quest {
@@ -199,6 +200,7 @@ export interface UserSettings {
   reducedMotion: boolean;
   notificationsEnabled: boolean;
   tutorialCompletedAt: string | null;
+  tutorialDeferred?: boolean;
 }
 
 export type QuoteCategory =

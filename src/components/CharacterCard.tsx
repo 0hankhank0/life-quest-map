@@ -52,10 +52,10 @@ export function CharacterCard({
             {profile.name}
           </h2>
           <p className="mt-1 text-sm text-zinc-300">
-            {role?.label ?? "玩家"} · {occupation}路線
+            {profile.setupCompletedAt === null ? "直接體驗中" : `${role?.label ?? "玩家"} · ${occupation}路線`}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            主要成長：{focusLabels}
+            {profile.setupCompletedAt === null ? "可到角色頁補填設定" : `主要成長：${focusLabels}`}
           </p>
         </div>
       </div>
