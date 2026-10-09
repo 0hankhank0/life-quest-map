@@ -1,9 +1,11 @@
-import type { AvailableTime, MicroAdventure, Mood } from "../data/microAdventures";
+import { adventureLocationLabels, adventureTimeOfDayLabels, type AvailableTime, type LocationPreference, type MicroAdventure, type Mood, type TimeOfDayPreference } from "../data/microAdventures";
 import type { DismissedAdventure, GrowthFocus, OccupationCategory } from "../types";
 
 export interface AdventureRecommendationContext {
   mood: Mood;
   time: AvailableTime;
+  location?: LocationPreference;
+  timeOfDay?: TimeOfDayPreference;
   focuses?: GrowthFocus[];
   occupation?: OccupationCategory;
   favoriteAdventureIds: string[];
@@ -33,11 +35,18 @@ export function getAdventureRecommendations(
     {}
   );
 
-  return adventures.map((adventure) => {
+  return adventures.filter((adventure) =>
+    Math.min(...adventure.times.map(Number)) <= Number(context.time) &&
+    (!context.location || context.location === "any" || adventure.locations.includes(context.location)) &&
+    (!context.timeOfDay || context.timeOfDay === "any" || adventure.timesOfDay.includes(context.timeOfDay))
+  ).map((adventure) => {
     let score = 0;
     const reasons: string[] = [];
+    if (context.location && context.location !== "any") reasons.push(`適合${adventureLocationLabels[context.location]}進行`);
+    if (context.timeOfDay && context.timeOfDay !== "any") reasons.push(`適合${adventureTimeOfDayLabels[context.timeOfDay]}進行`);
     if (adventure.moods.includes(context.mood)) { score += 40; reasons.push("符合你現在的心情"); }
-    if (adventure.times.includes(context.time)) { score += 34; reasons.push(`大約 ${context.time === "60" ? "60" : context.time} 分鐘能完成`); }
+    if (adventure.times.includes(context.time)) score += 34;
+    reasons.push(`約需 ${Math.min(...adventure.times.map(Number))} 分鐘，在可用時間內`);
     if (context.focuses?.includes(adventure.category)) { score += 15; reasons.push("和你的成長方向有關"); }
     if (adventure.occupation === context.occupation) score += 9;
     if (adventure.occupation === "general") score += 5;
@@ -55,6 +64,6 @@ export function getAdventureRecommendations(
       const age = now.getTime() - new Date(dismissal.dismissedAt).getTime();
       if (age < dayMs * 7) score -= 45 + dismissal.count * 5;
     }
-    return { adventure, score, reasons: reasons.slice(0, 3) };
+    return { adventure, score, reasons: reasons.slice(0, 4) };
   }).sort((a, b) => b.score - a.score || a.adventure.id.localeCompare(b.adventure.id));
 }

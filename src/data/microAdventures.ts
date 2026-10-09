@@ -2,11 +2,20 @@ import type { OccupationCategory, QuestDraft } from "@/types";
 
 export type Mood = "bored" | "tired" | "good" | "out" | "social" | "quiet";
 export type AvailableTime = "5" | "15" | "30" | "60";
+export type AdventureLocation = "home" | "indoor" | "outdoor";
+export type AdventureTimeOfDay = "morning" | "afternoon" | "evening";
+export type LocationPreference = "any" | AdventureLocation;
+export type TimeOfDayPreference = "any" | AdventureTimeOfDay;
+
+export const adventureLocationLabels: Record<AdventureLocation, string> = { home: "在家", indoor: "室內公共場所", outdoor: "戶外" };
+export const adventureTimeOfDayLabels: Record<AdventureTimeOfDay, string> = { morning: "早上", afternoon: "下午", evening: "晚上" };
 
 export interface MicroAdventure extends QuestDraft {
   id: string;
   moods: Mood[];
   times: AvailableTime[];
+  locations: AdventureLocation[];
+  timesOfDay: AdventureTimeOfDay[];
 }
 
 type AdventureSeed = [string, string, Mood[], AvailableTime[], QuestDraft["category"], OccupationCategory];
@@ -143,12 +152,66 @@ const adventureDescriptionOverrides: Partial<Record<string, string>> = {
   "rainy-street-reflections": "天候安全時在公開街道觀察雨後倒影與變化，留意濕滑路面且不拍私人住宅內部。"
 };
 
+// Destination requirements are explicit: an "out" mood alone does not mean
+// leaving home (for example, map-pin and local-history can be done at home).
+const outdoorAdventureIds = new Set([
+  "different-route", "fresh-air-loop", "neighborhood-photo-walk", "slow-neighborhood-bench",
+  "street-tree", "walk-meeting", "city-alley-survey", "random-turn-route", "unknown-green-space",
+  "city-edge-return", "quiet-corner-search", "special-building-scout", "shade-street-search",
+  "street-furniture-clues", "alley-view-and-old-street", "aimless-bike-ride", "bike-random-route",
+  "riverside-bike-expedition", "bike-unknown-park", "bike-photo-rest-stop", "bike-loop-at-dusk",
+  "night-market-sensory-patrol", "night-market-sign-hunt", "morning-market-scout", "street-food-clue",
+  "small-shop-window", "shopping-district-detour", "metro-new-exit-walk", "last-light-watch",
+  "city-viewpoint-observation", "city-sound-color-collection", "city-fragment-photo-quest",
+  "rainy-street-reflections", "transit-flow-observation", "public-space-review"
+]);
+const indoorAdventureIds = new Set([
+  "small-shop", "library-or-bookstore-stop", "unfamiliar-convenience-store", "safe-rainy-bus-trip",
+  "metro-art-underground"
+]);
+const publicAdventureIds = new Set([
+  "ask-name", "market-ingredient", "community-board", "bus-three-stop-quest", "bus-window-city-notes",
+  "bus-next-route-stop", "bus-return-route-planning", "bus-transfer-map-quest", "metro-unknown-station",
+  "metro-transfer-terminal", "one-hour-transit-expedition", "mixed-transit-return"
+]);
+const homeAdventureIds = new Set(["tidy-one-surface", "desk-reset", "workspace-tour", "donate-box"]);
+const shelteredAdventureIds = new Set([
+  "quiet-five", "window-seat", "desk-stretch", "sketch-a-mug", "tea-break-without-screen", "stairs",
+  "posture", "new-tool", "balance", "one-rep"
+]);
+
+const timeOfDayOverrides: Partial<Record<string, AdventureTimeOfDay[]>> = {
+  "morning-market-scout": ["morning"],
+  "night-market-sensory-patrol": ["evening"],
+  "night-market-sign-hunt": ["evening"],
+  "sunset": ["afternoon"],
+  "last-light-watch": ["afternoon"],
+  "bike-loop-at-dusk": ["afternoon"],
+  "aimless-bike-ride": ["morning", "afternoon"],
+  "bike-random-route": ["morning", "afternoon"],
+  "bike-unknown-park": ["morning", "afternoon"],
+  "bike-photo-rest-stop": ["morning", "afternoon"],
+  "metro-unknown-station": ["morning", "afternoon"],
+  "shade-street-search": ["morning", "afternoon"]
+};
+
+function getAdventureLocations(id: string): AdventureLocation[] {
+  if (outdoorAdventureIds.has(id)) return ["outdoor"];
+  if (indoorAdventureIds.has(id)) return ["indoor"];
+  if (publicAdventureIds.has(id)) return ["indoor", "outdoor"];
+  if (homeAdventureIds.has(id)) return ["home"];
+  if (shelteredAdventureIds.has(id)) return ["home", "indoor"];
+  return ["home", "indoor", "outdoor"];
+}
+
 export const microAdventures: MicroAdventure[] = seeds.map(([id, title, moods, times, category, occupation]) => ({
   id,
   title,
   description: `花 ${times[0]} 分鐘完成「${title}」。`,
   moods,
   times,
+  locations: getAdventureLocations(id),
+  timesOfDay: timeOfDayOverrides[id] ?? ["morning", "afternoon", "evening"],
   type: category === "exploration" || category === "social" ? "side" : "daily",
   category,
   occupation,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialLifeQuestState } from "../data/defaults";
 import { migrateLifeQuestState } from "./stateMigration";
-import { microAdventures } from "../data/microAdventures";
+import { microAdventures, type AdventureLocation, type AdventureTimeOfDay, type AvailableTime } from "../data/microAdventures";
 import { getAdventureRecommendations } from "./recommendations";
 
 const base = {
@@ -49,6 +49,52 @@ describe("micro-adventure recommendations", () => {
     expect(getAdventureRecommendations([], base)).toEqual([]);
     expect(getAdventureRecommendations(microAdventures, base)).toEqual(getAdventureRecommendations(microAdventures, base));
   });
+  it("only recommends activities that fit the selected scene, period and time budget", () => {
+    for (const location of ["home", "indoor", "outdoor"] as AdventureLocation[]) {
+      for (const timeOfDay of ["morning", "afternoon", "evening"] as AdventureTimeOfDay[]) {
+        for (const time of ["5", "15", "30", "60"] as AvailableTime[]) {
+          const results = getAdventureRecommendations(microAdventures, { ...base, location, timeOfDay, time });
+          expect(results.length).toBeGreaterThan(0);
+          for (const { adventure } of results) {
+            expect(adventure.locations).toContain(location);
+            expect(adventure.timesOfDay).toContain(timeOfDay);
+            expect(Math.min(...adventure.times.map(Number))).toBeLessThanOrEqual(Number(time));
+          }
+        }
+      }
+    }
+  });
+  it("excludes trips from home and does not let favorites bypass scene restrictions", () => {
+    const results = getAdventureRecommendations(microAdventures, { ...base, mood: "out", time: "60", location: "home", favoriteAdventureIds: ["night-market-sensory-patrol", "metro-art-underground"] });
+    expect(results.some(({ adventure }) => adventure.id === "map-pin")).toBe(true);
+    expect(results.some(({ adventure }) => adventure.id === "night-market-sensory-patrol" || adventure.id === "metro-art-underground")).toBe(false);
+  });
+  it("keeps morning markets, night markets and daylight rides in their appropriate periods", () => {
+    const eligibleIds = (timeOfDay: AdventureTimeOfDay) => getAdventureRecommendations(microAdventures, { ...base, time: "60", location: "outdoor", timeOfDay }).map(({ adventure }) => adventure.id);
+    expect(eligibleIds("morning")).toContain("morning-market-scout");
+    expect(eligibleIds("morning")).not.toContain("night-market-sensory-patrol");
+    expect(eligibleIds("evening")).toContain("night-market-sensory-patrol");
+    expect(eligibleIds("evening")).not.toContain("morning-market-scout");
+    expect(eligibleIds("evening")).not.toContain("aimless-bike-ride");
+    expect(eligibleIds("evening")).not.toContain("last-light-watch");
+  });
+  it("includes short activities in longer budgets and states their actual estimated duration", () => {
+    const adventure = microAdventures.find((item) => item.id === "water-and-breathe")!;
+    const results = getAdventureRecommendations([adventure], { ...base, time: "60", location: "home", timeOfDay: "evening" });
+    expect(results).toHaveLength(1);
+    expect(results[0].reasons).toContain("約需 5 分鐘，在可用時間內");
+    expect(results[0].reasons).toContain("適合在家進行");
+    expect(results[0].reasons).toContain("適合晚上進行");
+  });
+  it("returns no candidates rather than silently relaxing conflicting conditions", () => {
+    const market = microAdventures.find((item) => item.id === "morning-market-scout")!;
+    expect(getAdventureRecommendations([market], { ...base, time: "60", location: "home", timeOfDay: "morning" })).toEqual([]);
+    expect(getAdventureRecommendations([market], { ...base, time: "60", location: "outdoor", timeOfDay: "evening" })).toEqual([]);
+    expect(getAdventureRecommendations([market], { ...base, location: "outdoor", timeOfDay: "morning" })).toEqual([]);
+  });
+  it("treats unrestricted location and period the same as omitted preferences", () => {
+    expect(getAdventureRecommendations(microAdventures, { ...base, location: "any", timeOfDay: "any" })).toEqual(getAdventureRecommendations(microAdventures, base));
+  });
   it("keeps the expanded adventure catalogue valid and uniquely keyed", () => {
     expect(microAdventures).toHaveLength(101);
     expect(microAdventures.filter((adventure) => adventure.category === "exploration")).toHaveLength(54);
@@ -57,6 +103,8 @@ describe("micro-adventure recommendations", () => {
     for (const adventure of microAdventures) {
       expect(adventure.moods.length).toBeGreaterThan(0);
       expect(adventure.times.length).toBeGreaterThan(0);
+      expect(adventure.locations.length).toBeGreaterThan(0);
+      expect(adventure.timesOfDay.length).toBeGreaterThan(0);
     }
   });
 });
