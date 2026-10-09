@@ -1,6 +1,7 @@
 import { evaluateAchievements } from "@/lib/achievements";
 import { recordDailyQuestCompletion, updateStreakForCompletion } from "@/lib/dailyProgress";
 import { appendRecommendationHistory } from "@/lib/adventurePreferences";
+import { microAdventures } from "@/data/microAdventures";
 import { STAT_GAIN_PER_QUEST, addStat, getExpReward, getLevelFromExp } from "@/lib/progression";
 import { calendarDateKey, createId } from "@/lib/utils";
 import type { LifeMomentMood, LifeQuestState, MapLocation, Quest, QuestDraft } from "@/types";
@@ -85,7 +86,22 @@ export function completeQuest(state: LifeQuestState, questId: string, now = new 
   return { ...completedState, quests: [nextQuest, ...completedState.quests] };
 }
 
+export function startMicroAdventure(state: LifeQuestState, adventureId: string, now = new Date().toISOString()): LifeQuestState {
+  const adventure = microAdventures.find((item) => item.id === adventureId);
+  if (!state.profile || !adventure || state.activeMicroAdventure) return state;
+  const completedToday = state.lifeMoments.some((moment) =>
+    (moment.adventureId === adventureId || (!moment.adventureId && moment.adventureName === adventure.title)) &&
+    (moment.rewardGranted ?? true) && calendarDateKey(new Date(moment.completedAt)) === calendarDateKey(new Date(now)));
+  if (completedToday) return state;
+  return { ...state, activeMicroAdventure: { adventureId, startedAt: now } };
+}
+
+export function cancelMicroAdventure(state: LifeQuestState): LifeQuestState {
+  return state.activeMicroAdventure ? { ...state, activeMicroAdventure: null } : state;
+}
+
 export function completeMicroAdventure(state: LifeQuestState, adventureId: string, draft: QuestDraft, note: string, mood: LifeMomentMood, now = new Date().toISOString()): LifeQuestState {
+  if (state.activeMicroAdventure?.adventureId !== adventureId) return state;
   const alreadyRewardedToday = state.lifeMoments.some((moment) =>
     (moment.adventureId === adventureId || (!moment.adventureId && moment.adventureName === draft.title)) &&
     (moment.rewardGranted ?? true) && calendarDateKey(new Date(moment.completedAt)) === calendarDateKey(new Date(now)));
@@ -94,6 +110,7 @@ export function completeMicroAdventure(state: LifeQuestState, adventureId: strin
   const completed = applyCompletion(state, quest, now);
   return {
     ...completed,
+    activeMicroAdventure: null,
     lifeMoments: [{ id: createId("life-moment"), adventureName: draft.title, note: note.trim(), mood, completedAt: now, adventureId, rewardGranted: true }, ...state.lifeMoments],
     savedAdventureIds: state.savedAdventureIds.filter((id) => id !== adventureId),
     recommendationHistory: appendRecommendationHistory(state.recommendationHistory, adventureId, "completed", now)

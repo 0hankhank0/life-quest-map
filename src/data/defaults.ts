@@ -233,6 +233,7 @@ export function createInitialLifeQuestState(): LifeQuestState {
     dismissedAdventures: [],
     recommendationHistory: [],
     selectedAdventureId: null,
+    activeMicroAdventure: null,
     dailyProgress: {
       date: calendarDateKey(),
       completedQuestIds: [],

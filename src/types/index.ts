@@ -359,6 +359,7 @@ export interface LifeQuestState {
   dismissedAdventures: DismissedAdventure[];
   recommendationHistory: RecommendationHistoryEntry[];
   selectedAdventureId: string | null;
+  activeMicroAdventure: { adventureId: string; startedAt: string } | null;
   dailyProgress: DailyProgress;
   streak: Streak;
   customMapLocations: MapLocation[];

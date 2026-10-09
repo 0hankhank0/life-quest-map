@@ -10,6 +10,7 @@ import { calendarDateKey } from "@/lib/utils";
 import { skillNodeIds } from "@/data/skillNodes";
 import { normalizeCustomMapLocation } from "@/lib/mapLocations";
 import { findAdventureQuote } from "@/data/adventureQuotes";
+import { microAdventures } from "@/data/microAdventures";
 import type { AdventureJournalEntry, AdventureQuoteSourceStatus, AttributionStatus, CityEchoCategory, CompletionMood, CompletionQuoteEvent, LifeQuestState, Quest, QuestDifficulty, QuestPriority, QuestRecurrence, QuestSubtask, QuoteSourceType, SavedQuote } from "@/types";
 
 type StateRecord = Record<string, unknown>;
@@ -160,6 +161,7 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
         ? now.toISOString()
         : null;
 
+  const sourceActiveAdventure = source.activeMicroAdventure;
   return {
     ...fallback,
     schemaVersion: 11,
@@ -175,6 +177,12 @@ export function migrateLifeQuestState(value: unknown, now = new Date()): LifeQue
     dismissedAdventures: Array.isArray(source.dismissedAdventures) ? source.dismissedAdventures.filter((item) => isRecord(item) && typeof item.adventureId === "string" && typeof item.dismissedAt === "string" && typeof item.count === "number").map((item) => ({ adventureId: item.adventureId as string, dismissedAt: item.dismissedAt as string, count: Math.max(1, item.count as number) })) : [],
     recommendationHistory: Array.isArray(source.recommendationHistory) ? source.recommendationHistory.filter((item) => isRecord(item) && typeof item.adventureId === "string" && typeof item.shownAt === "string" && typeof item.action === "string" && recommendationActions.has(item.action)).slice(-100) as LifeQuestState["recommendationHistory"] : [],
     selectedAdventureId: typeof source.selectedAdventureId === "string" ? source.selectedAdventureId : null,
+    activeMicroAdventure: isRecord(sourceActiveAdventure) &&
+      typeof sourceActiveAdventure.adventureId === "string" &&
+      microAdventures.some((adventure) => adventure.id === sourceActiveAdventure.adventureId) &&
+      isDateString(sourceActiveAdventure.startedAt)
+      ? { adventureId: sourceActiveAdventure.adventureId, startedAt: sourceActiveAdventure.startedAt }
+      : null,
     dailyProgress: { date: nowKey, completedQuestIds: storedDailyIds ?? derivedTodayIds, expEarned: storedDailyExp },
     streak: sourceStreak,
     customMapLocations: normalizeCustomMapLocations(source.customMapLocations),

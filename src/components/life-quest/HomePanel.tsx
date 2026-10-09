@@ -18,8 +18,8 @@ const moods: Array<{ value: Mood; label: string }> = [
 const times: AvailableTime[] = ["5", "15", "30", "60"];
 const weekLabels = ["一", "二", "三", "四", "五", "六", "日"];
 
-function ChoiceButton({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className={`rounded-xl border px-3 py-2 text-sm font-semibold transition active:scale-[.98] ${active ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-white/[.03] text-zinc-200 hover:border-emerald-200/50"}`}>{children}</button>;
+function ChoiceButton({ active, children, onClick, disabled }: { active: boolean; children: ReactNode; onClick: () => void; disabled?: boolean }) {
+  return <button type="button" onClick={onClick} disabled={disabled} className={`rounded-xl border px-3 py-2 text-sm font-semibold transition active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60 ${active ? "border-emerald-200 bg-emerald-300 text-zinc-950" : "border-white/10 bg-white/[.03] text-zinc-200 hover:border-emerald-200/50"}`}>{children}</button>;
 }
 
 function RecommendationReasons({ reasons }: { reasons: string[] }) {
@@ -29,7 +29,7 @@ function RecommendationReasons({ reasons }: { reasons: string[] }) {
 export function HomePanel() {
   const router = useRouter();
   const onNavigate = (tab: "profile" | "quests") => router.push(tab === "profile" ? "/history" : "/quests");
-  const { state, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, clearSelectedAdventure } = useLifeQuest();
+  const { state, startMicroAdventure, cancelMicroAdventure, completeMicroAdventure, toggleFavoriteAdventure, toggleSavedAdventure, dismissAdventure, showAdventure, clearSelectedAdventure } = useLifeQuest();
   const [mood, setMood] = useState<Mood>("bored");
   const [time, setTime] = useState<AvailableTime>("15");
   const [displayedAdventureId, setDisplayedAdventureId] = useState<string | null>(null);
@@ -44,10 +44,15 @@ export function HomePanel() {
   const recommendationContext = useMemo(() => ({ focuses: state.profile?.focuses, occupation: state.profile?.occupation, favoriteAdventureIds: state.favoriteAdventureIds, savedAdventureIds: state.savedAdventureIds, dismissedAdventures: state.dismissedAdventures, recentlyShownIds, recentlyShownCategories, completedTodayIds }), [completedTodayIds, recentlyShownCategories, recentlyShownIds, state.dismissedAdventures, state.favoriteAdventureIds, state.profile?.focuses, state.profile?.occupation, state.savedAdventureIds]);
   const recommendations = useMemo(() => getAdventureRecommendations(microAdventures, { ...recommendationContext, mood, time }), [mood, recommendationContext, time]);
   const selectedAdventure = state.selectedAdventureId ? recommendations.find((item) => item.adventure.id === state.selectedAdventureId) : undefined;
-  const displayedRecommendation = selectedAdventure ?? (displayedAdventureId ? recommendations.find((item) => item.adventure.id === displayedAdventureId) : undefined);
+  const activeRecommendation = state.activeMicroAdventure ? recommendations.find((item) => item.adventure.id === state.activeMicroAdventure?.adventureId) : undefined;
+  const displayedRecommendation = activeRecommendation ?? selectedAdventure ?? (displayedAdventureId ? recommendations.find((item) => item.adventure.id === displayedAdventureId) : undefined);
   const adventure = displayedRecommendation?.adventure;
 
   useEffect(() => {
+    if (activeRecommendation) {
+      setDisplayedAdventureId(activeRecommendation.adventure.id);
+      return;
+    }
     if (state.selectedAdventureId && selectedAdventure) {
       setDisplayedAdventureId(selectedAdventure.adventure.id);
       clearSelectedAdventure();
@@ -57,7 +62,7 @@ export function HomePanel() {
     if (!displayedAdventureId && recommendations[0]) {
       setDisplayedAdventureId(recommendations[0].adventure.id);
     }
-  }, [clearSelectedAdventure, displayedAdventureId, recommendations, selectedAdventure, state.selectedAdventureId]);
+  }, [activeRecommendation, clearSelectedAdventure, displayedAdventureId, recommendations, selectedAdventure, state.selectedAdventureId]);
 
   useEffect(() => {
     if (displayedAdventureId && shouldRecordShown(lastShownAdventureId.current, displayedAdventureId)) {
@@ -78,6 +83,7 @@ export function HomePanel() {
   if (!state.profile || !adventure || !displayedRecommendation) return null;
 
   const completed = completedTodayIds.includes(adventure.id);
+  const inProgress = state.activeMicroAdventure?.adventureId === adventure.id;
   const choose = (nextMood: Mood, nextTime: AvailableTime) => { const nextRecommendations = getAdventureRecommendations(microAdventures, { ...recommendationContext, mood: nextMood, time: nextTime }); setMood(nextMood); setTime(nextTime); setDisplayedAdventureId(getNextDisplayedAdventureId(nextRecommendations, adventure.id)); };
   const finish = () => completeMicroAdventure(adventure.id, adventure, "", "unchanged");
   const weekMax = Math.max(1, ...week.map((day) => day.completedCount));
@@ -94,8 +100,27 @@ export function HomePanel() {
 
     <section className="order-6 game-card p-4 sm:p-5" aria-labelledby="recent-heading"><div className="flex items-center justify-between"><h2 id="recent-heading" className="text-xl font-black text-zinc-50">最近完成</h2><button type="button" onClick={() => onNavigate("profile")} className="text-sm font-bold text-emerald-200 hover:text-emerald-100">查看歷史</button></div>{recentCompleted.length ? <div className="mt-4 grid gap-2 md:grid-cols-3">{recentCompleted.map((quest) => <article key={quest.id} className="rounded-lg bg-white/[0.04] p-3"><p className="text-xs font-bold text-emerald-100">+{quest.expReward} EXP</p><h3 className="mt-1 line-clamp-2 text-sm font-bold text-zinc-100">{quest.title}</h3><p className="mt-2 text-xs text-zinc-400">{quest.completedAt ? new Date(quest.completedAt).toLocaleDateString() : ""}</p></article>)}</div> : <p className="mt-4 rounded-lg bg-white/[0.04] p-4 text-sm text-zinc-400">完成第一個任務後，這裡會記錄你的最新進展。</p>}</section>
 
-    <section className="order-2 game-card p-4 sm:p-5"><h2 className="text-lg font-bold text-zinc-50">此刻想做什麼？</h2><div className="mt-3 flex flex-wrap gap-2">{moods.map((item) => <ChoiceButton key={item.value} active={mood === item.value} onClick={() => choose(item.value, time)}>{item.label}</ChoiceButton>)}</div><div className="mt-5 flex items-center gap-2 text-sm font-bold text-zinc-50"><Clock className="size-5 text-emerald-200" weight="duotone" />可用時間</div><div className="mt-3 flex flex-wrap gap-2">{times.map((item) => <ChoiceButton key={item} active={time === item} onClick={() => choose(mood, item)}>{item === "60" ? "1 小時" : `${item} 分鐘`}</ChoiceButton>)}</div></section>
-    <section id="recommended-adventure" data-testid="recommended-adventure" className="order-3 relative overflow-hidden rounded-2xl border border-emerald-200/25 bg-[linear-gradient(135deg,rgba(52,211,153,.18),rgba(24,24,27,.9)_55%)] p-5 shadow-[0_20px_60px_rgba(3,20,15,.3)]"><Sparkle className="absolute right-4 top-4 size-9 text-emerald-200/40" weight="fill" /><p className="text-sm font-semibold text-emerald-100">推薦的微冒險</p><h2 tabIndex={-1} className="mt-2 max-w-md text-2xl font-black tracking-[-.02em] text-zinc-50 outline-none">{adventure.title}</h2><p className="mt-2 max-w-lg text-sm leading-6 text-zinc-200">{adventure.description}</p><RecommendationReasons reasons={displayedRecommendation.reasons} /><div className="mt-5 flex flex-wrap gap-3"><button data-testid="complete-micro-adventure" type="button" onClick={finish} disabled={completed} className="min-h-11 rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60">{completed ? "今天已完成" : "完成這次冒險"}</button><button type="button" onClick={() => setDisplayedAdventureId(getNextDisplayedAdventureId(recommendations, adventure.id))} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-200/50 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10"><Shuffle className="size-4" />換一個</button></div><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => toggleFavoriteAdventure(adventure.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/10"><Heart className="size-4 text-emerald-200" weight={state.favoriteAdventureIds.includes(adventure.id) ? "fill" : "regular"} />收藏</button><button type="button" onClick={() => toggleSavedAdventure(adventure.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/10"><BookmarkSimple className="size-4 text-emerald-200" weight={state.savedAdventureIds.includes(adventure.id) ? "fill" : "regular"} />稍後再做</button><button type="button" onClick={() => { dismissAdventure(adventure.id); setDisplayedAdventureId(getNextDisplayedAdventureId(recommendations, adventure.id)); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"><Prohibit className="size-4" />不適合現在</button></div></section>
+    <section className="order-2 game-card p-4 sm:p-5"><h2 className="text-lg font-bold text-zinc-50">此刻想做什麼？</h2><div className="mt-3 flex flex-wrap gap-2">{moods.map((item) => <ChoiceButton key={item.value} active={mood === item.value} disabled={inProgress} onClick={() => choose(item.value, time)}>{item.label}</ChoiceButton>)}</div><div className="mt-5 flex items-center gap-2 text-sm font-bold text-zinc-50"><Clock className="size-5 text-emerald-200" weight="duotone" />可用時間</div><div className="mt-3 flex flex-wrap gap-2">{times.map((item) => <ChoiceButton key={item} active={time === item} disabled={inProgress} onClick={() => choose(mood, item)}>{item === "60" ? "1 小時" : `${item} 分鐘`}</ChoiceButton>)}</div></section>
+    <section id="recommended-adventure" data-testid="recommended-adventure" className="order-3 relative overflow-hidden rounded-2xl border border-emerald-200/25 bg-[linear-gradient(135deg,rgba(52,211,153,.18),rgba(24,24,27,.9)_55%)] p-5 shadow-[0_20px_60px_rgba(3,20,15,.3)]">
+      <Sparkle className="absolute right-4 top-4 size-9 text-emerald-200/40" weight="fill" />
+      <p className="text-sm font-semibold text-emerald-100">{inProgress ? "正在進行的微冒險" : "推薦的微冒險"}</p>
+      <h2 tabIndex={-1} className="mt-2 max-w-md text-2xl font-black tracking-[-.02em] text-zinc-50 outline-none">{adventure.title}</h2>
+      <p className="mt-2 max-w-lg text-sm leading-6 text-zinc-200">{adventure.description}</p>
+      <RecommendationReasons reasons={displayedRecommendation.reasons} />
+      <div className="mt-4 rounded-lg bg-zinc-950/35 p-3" role="status" data-testid="micro-adventure-status">
+        <p className="text-sm font-bold text-emerald-100">{completed ? "今天已完成" : inProgress ? "冒險進行中" : "待開始"}</p>
+        <p className="mt-1 text-xs leading-5 text-zinc-300">{completed ? "這次冒險的獎勵已記錄，可以換一個新冒險。" : inProgress ? "照著上方的任務內容行動，做完後再回來完成。進度已保留，也可以稍後繼續。" : "準備好了就開始，實際做完後再回來領取獎勵。"}</p>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button data-testid={inProgress || completed ? "complete-micro-adventure" : "start-micro-adventure"} type="button" onClick={inProgress ? finish : () => startMicroAdventure(adventure.id)} disabled={completed} className="min-h-11 rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-zinc-950 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60">{completed ? "今天已完成" : inProgress ? "完成這次冒險" : "開始冒險"}</button>
+        {inProgress ? <button data-testid="cancel-micro-adventure" type="button" onClick={cancelMicroAdventure} className="min-h-11 rounded-xl border border-emerald-200/50 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10">取消這次冒險</button> : <button type="button" onClick={() => setDisplayedAdventureId(getNextDisplayedAdventureId(recommendations, adventure.id))} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-emerald-200/50 px-4 py-3 text-sm font-bold text-emerald-100 transition hover:bg-emerald-300/10"><Shuffle className="size-4" />換一個</button>}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={() => toggleFavoriteAdventure(adventure.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/10"><Heart className="size-4 text-emerald-200" weight={state.favoriteAdventureIds.includes(adventure.id) ? "fill" : "regular"} />收藏</button>
+        <button type="button" onClick={() => toggleSavedAdventure(adventure.id)} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-white/10"><BookmarkSimple className="size-4 text-emerald-200" weight={state.savedAdventureIds.includes(adventure.id) ? "fill" : "regular"} />稍後再做</button>
+        {!inProgress ? <button type="button" onClick={() => { dismissAdventure(adventure.id); setDisplayedAdventureId(getNextDisplayedAdventureId(recommendations, adventure.id)); }} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-zinc-300 hover:bg-white/10"><Prohibit className="size-4" />不適合現在</button> : null}
+      </div>
+    </section>
     <section className="order-7 game-card flex items-center gap-3 p-4"><CheckCircle className="size-5 text-emerald-200" weight="fill" /><p className="text-sm text-zinc-300">還有時間的話，可以再完成一個任務。</p><button type="button" onClick={() => onNavigate("quests")} className="ml-auto shrink-0 text-sm font-bold text-emerald-200 hover:text-emerald-100">查看任務</button></section>
   </main>;
 }

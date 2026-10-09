@@ -9,14 +9,14 @@ async function onboard(page: import("@playwright/test").Page) {
   await page.locator("form button[type=submit]").click();
   await expect(page.getByTestId("beginner-guide")).toBeVisible();
   await page.getByTestId("beginner-guide-skip").click();
-  await expect(page.getByTestId("complete-micro-adventure")).toBeVisible();
+  await expect(page.getByTestId("start-micro-adventure")).toBeVisible();
 }
 
-async function waitForStoredState(page: import("@playwright/test").Page, predicate: (state: { profile?: unknown; adventureJournal?: unknown[]; userSettings?: { tutorialCompletedAt?: string | null } }) => boolean) {
+async function waitForStoredState(page: import("@playwright/test").Page, predicate: (state: { profile?: unknown; adventureJournal?: Array<{ note?: string }>; userSettings?: { tutorialCompletedAt?: string | null } }) => boolean) {
   await expect.poll(async () => {
     const state = await page.evaluate(() => {
     const raw = window.localStorage.getItem("lifeQuestMap:v0.1");
-    return raw ? JSON.parse(raw) as { profile?: unknown; adventureJournal?: unknown[]; userSettings?: { tutorialCompletedAt?: string | null } } : {};
+    return raw ? JSON.parse(raw) as { profile?: unknown; adventureJournal?: Array<{ note?: string }>; userSettings?: { tutorialCompletedAt?: string | null } } : {};
     });
     return predicate(state);
   }).toBe(true);
@@ -79,6 +79,7 @@ test("guest can return to the auth entry and resume the same local adventure", a
 
 test("profile can restart the guide without clearing adventure data", async ({ page }) => {
   await onboard(page);
+  await page.getByTestId("start-micro-adventure").click();
   await page.getByTestId("complete-micro-adventure").click();
   await page.getByTestId("complete-only").click();
   await page.goto("/profile");
@@ -109,11 +110,12 @@ test("mobile beginner guide stays inside the viewport and can be completed", asy
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
   for (let step = 0; step < 4; step += 1) await page.getByTestId("beginner-guide-next").click();
   await page.getByTestId("beginner-guide-start").click();
-  await expect(page.getByTestId("complete-micro-adventure")).toBeVisible();
+  await expect(page.getByTestId("start-micro-adventure")).toBeVisible();
 });
 
 test("micro-adventure can be completed without saving a journal entry", async ({ page }) => {
   await onboard(page);
+  await page.getByTestId("start-micro-adventure").click();
   await page.getByTestId("complete-micro-adventure").click();
   const dialog = page.getByTestId("completion-feedback");
   await expect(dialog).toBeVisible();
@@ -129,6 +131,7 @@ test("micro-adventure can be completed without saving a journal entry", async ({
 
 test("saved experience persists with its city echo snapshot", async ({ page }) => {
   await onboard(page);
+  await page.getByTestId("start-micro-adventure").click();
   await page.getByTestId("complete-micro-adventure").click();
   const echo = await page.getByTestId("city-echo-text").innerText();
   const attributionLocator = page.getByTestId("city-echo-attribution");
@@ -151,6 +154,7 @@ test("saved experience persists with its city echo snapshot", async ({ page }) =
 test("mobile completion dialog stays usable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await onboard(page);
+  await page.getByTestId("start-micro-adventure").click();
   await page.getByTestId("complete-micro-adventure").click();
   const dialog = page.getByTestId("completion-feedback");
   await expect(dialog).toBeVisible();
@@ -167,4 +171,60 @@ test("mobile completion dialog stays usable", async ({ page }) => {
   }
   await page.getByTestId("complete-only").click();
   await expect(dialog).toBeHidden();
+});
+
+test("starting an adventure preserves progress across navigation and reload without rewards", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await onboard(page);
+  const card = page.getByTestId("recommended-adventure");
+  const title = await card.getByRole("heading").innerText();
+  const before = await page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1")!));
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("待開始");
+  await expect(page.getByTestId("complete-micro-adventure")).toHaveCount(0);
+  await page.getByTestId("start-micro-adventure").click();
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("冒險進行中");
+  await expect(page.getByTestId("complete-micro-adventure")).toBeVisible();
+  await expect(page.getByRole("button", { name: "換一個", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "想出門", exact: true })).toBeDisabled();
+  await expect.poll(async () => page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1")!).activeMicroAdventure)).toMatchObject({ startedAt: expect.any(String) });
+  const started = await page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1")!));
+  expect(started.profile.exp).toBe(before.profile.exp);
+  expect(started.quests).toEqual(before.quests);
+  expect(started.stats).toEqual(before.stats);
+  expect(started.lifeMoments).toEqual(before.lifeMoments);
+  await page.goto("/quests");
+  await page.goto("/");
+  await expect(card.getByRole("heading")).toHaveText(title);
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("冒險進行中");
+  await page.reload();
+  await expect(card.getByRole("heading")).toHaveText(title);
+  await expect(page.getByTestId("complete-micro-adventure")).toBeVisible();
+  await page.getByTestId("cancel-micro-adventure").click();
+  await expect(page.getByTestId("start-micro-adventure")).toBeVisible();
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("待開始");
+  await expect(page.getByRole("button", { name: "換一個", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "想出門", exact: true })).toBeEnabled();
+  await expect.poll(async () => page.evaluate(() => JSON.parse(window.localStorage.getItem("lifeQuestMap:v0.1")!).activeMicroAdventure)).toBeNull();
+  await page.getByTestId("start-micro-adventure").click();
+  await page.getByTestId("complete-micro-adventure").click();
+  await page.getByTestId("complete-only").click();
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("今天已完成");
+  await expect(page.getByTestId("complete-micro-adventure")).toBeDisabled();
+});
+
+test("saved adventure selection shows a start step and can return to the active adventure", async ({ page }) => {
+  await onboard(page);
+  const card = page.getByTestId("recommended-adventure");
+  const title = await card.getByRole("heading").innerText();
+  await card.getByRole("button", { name: "稍後再做", exact: true }).click();
+  await page.goto("/quests");
+  await page.getByRole("button", { name: "查看冒險", exact: true }).click();
+  await expect(card.getByRole("heading")).toHaveText(title);
+  await expect(page.getByTestId("start-micro-adventure")).toBeVisible();
+  await expect(page.getByTestId("complete-micro-adventure")).toHaveCount(0);
+  await page.getByTestId("start-micro-adventure").click();
+  await page.goto("/quests");
+  await page.getByRole("button", { name: "繼續冒險", exact: true }).click();
+  await expect(card.getByRole("heading")).toHaveText(title);
+  await expect(page.getByTestId("micro-adventure-status")).toContainText("冒險進行中");
 });
