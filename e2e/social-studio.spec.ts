@@ -108,8 +108,9 @@ test("custom quote without attribution leaves no empty source punctuation", asyn
 test("quote library studio exposes search, source, theme, and a selectable result list", async ({ page }) => {
   await page.goto("/social-studio");
   await expect(page.getByLabel("搜尋內容、作者、作品或來源")).toBeVisible();
-  await expect(page.getByRole("group", { name: "來源類型" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "語錄主題" })).toBeVisible();
+  // Both the fieldset and its nested button group have the same accessible name.
+  await expect(page.locator("fieldset").filter({ has: page.locator("legend").getByText("來源類型", { exact: true }) })).toBeVisible();
+  await expect(page.locator("fieldset").filter({ has: page.locator("legend").getByText("語錄主題", { exact: true }) })).toBeVisible();
   const results = page.getByRole("listbox", { name: "語錄搜尋結果" });
   await expect(results).toBeVisible();
   const first = results.getByRole("option").first();
@@ -148,3 +149,4 @@ test("custom quote mode hides quote-library controls while preserving the editor
   await page.getByRole("button", { name: "語錄庫" }).click();
   await expect(page.getByRole("listbox", { name: "語錄搜尋結果" })).toBeVisible();
 });
+
