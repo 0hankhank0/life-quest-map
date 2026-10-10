@@ -83,12 +83,15 @@ export function Onboarding({ editing = false, onComplete, onCancel }: { editing?
             <MapPin className="size-4" weight="fill" />
             Life Quest Map
           </div>
-          <div className="space-y-2">
-            <button type="button" data-testid="direct-experience" onClick={() => { startDirectExperience(); router.push("/"); }} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-emerald-300 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 sm:w-auto">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <button type="button" data-testid="direct-experience" aria-describedby="direct-experience-description" onClick={() => { startDirectExperience(); router.push("/"); }} className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-300 px-5 py-3 text-sm font-black text-zinc-950 transition hover:bg-emerald-200 sm:w-auto">
               直接體驗
               <ArrowRight className="size-4" weight="bold" />
             </button>
-            <p className="text-sm leading-6 text-zinc-400">先用預設角色開始探索，角色、階段、風格與成長方向可在角色頁補填，教學也能稍後觀看。</p>
+            <div id="direct-experience-description" className="space-y-1 text-sm leading-6">
+              <p className="text-zinc-300">選擇直接體驗可略過設定與教學。</p>
+              <p className="text-zinc-400">先用預設角色開始探索，角色、階段、風格與成長方向可在角色頁補填，教學也能稍後觀看。</p>
+            </div>
           </div>
           <div className="space-y-3">
             <h1 className="text-4xl font-black leading-tight text-zinc-50 sm:text-5xl">
@@ -117,7 +120,7 @@ export function Onboarding({ editing = false, onComplete, onCancel }: { editing?
         <form onSubmit={handleSubmit} className="game-card space-y-5 p-5 sm:p-6">
           <div className="space-y-2">
             <h2 className="text-xl font-black text-zinc-50">{editing ? "角色設定" : "先設定角色"}</h2>
-            <p className="text-sm leading-6 text-zinc-400">{editing ? "調整角色資料，已累積的 EXP、任務與冒險紀錄都會保留。" : "也可以先完成設定，再進入任務地圖。"}</p>
+            <p className="text-sm leading-6 text-zinc-400">{editing ? "調整角色資料，已累積的 EXP、任務與冒險紀錄都會保留。" : "也可以先完成設定，再進入任務地圖；完成設定後會開啟新手教學。"}</p>
           </div>
           <label className="block space-y-2">
             <span className="text-sm font-bold text-zinc-200">角色名稱</span>
@@ -251,7 +254,7 @@ export function Onboarding({ editing = false, onComplete, onCancel }: { editing?
           {error ? <p className="text-sm font-bold text-red-200">{error}</p> : null}
 
           <div className="space-y-1 rounded-lg border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-3 text-xs leading-5 text-zinc-300">
-            <p>{editing ? "儲存後即可繼續冒險，教學可從角色頁開啟。" : "選擇直接體驗可略過設定與教學；完成這份設定後則會開啟新手教學。"}</p>
+            {editing ? <p>儲存後即可繼續冒險，教學可從角色頁開啟。</p> : null}
             <p className="text-zinc-400">資料只保存在目前裝置，不會自動上傳；之後可在角色頁匯出備份。</p>
           </div>
 
